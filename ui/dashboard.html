@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard - Productivity Monkey</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: #f5f7fa;
+      color: #333;
+    }
+
+    .header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 20px 40px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    }
+
+    .header h1 {
+      font-size: 24px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 30px;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 20px;
+      margin-bottom: 30px;
+    }
+
+    .stat-card {
+      background: white;
+      border-radius: 12px;
+      padding: 24px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+      transition: transform 0.2s;
+    }
+
+    .stat-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+    }
+
+    .stat-label {
+      font-size: 14px;
+      color: #666;
+      margin-bottom: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .stat-value {
+      font-size: 32px;
+      font-weight: 700;
+      color: #333;
+      margin-bottom: 8px;
+    }
+
+    .stat-sub {
+      font-size: 12px;
+      color: #999;
+    }
+
+    .focus-score {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+
+    .focus-score .stat-label,
+    .focus-score .stat-sub {
+      color: rgba(255, 255, 255, 0.9);
+    }
+
+    .section {
+      background: white;
+      border-radius: 12px;
+      padding: 30px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    }
+
+    .section-title {
+      font-size: 20px;
+      font-weight: 600;
+      margin-bottom: 20px;
+      color: #333;
+    }
+
+    .app-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .app-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px;
+      background: #f8f9fa;
+      border-radius: 8px;
+    }
+
+    .app-name {
+      font-weight: 500;
+      color: #333;
+    }
+
+    .app-time {
+      color: #667eea;
+      font-weight: 600;
+    }
+
+    .app-category {
+      font-size: 12px;
+      padding: 4px 8px;
+      border-radius: 4px;
+      text-transform: uppercase;
+      font-weight: 600;
+      margin-left: 10px;
+    }
+
+    .category-deep { background: #d4edda; color: #155724; }
+    .category-shallow { background: #fff3cd; color: #856404; }
+    .category-admin { background: #cce5ff; color: #004085; }
+    .category-distracted { background: #f8d7da; color: #721c24; }
+
+    .website-item {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      padding: 12px;
+      background: #f8f9fa;
+      border-radius: 8px;
+    }
+
+    .website-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .website-title {
+      font-weight: 500;
+      color: #333;
+      flex: 1;
+    }
+
+    .website-url {
+      font-size: 12px;
+      color: #667eea;
+      text-decoration: none;
+      word-break: break-all;
+    }
+
+    .website-url:hover {
+      text-decoration: underline;
+    }
+
+    .website-stats {
+      display: flex;
+      gap: 15px;
+      font-size: 12px;
+      color: #666;
+    }
+
+    .diagnostic-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px;
+      background: #f8f9fa;
+      border-radius: 8px;
+    }
+
+    .diagnostic-label {
+      font-weight: 500;
+      color: #333;
+    }
+
+    .diagnostic-status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .status-icon {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+
+    .status-ok { background: #28a745; }
+    .status-warning { background: #ffc107; }
+    .status-error { background: #dc3545; }
+
+    .diagnostic-detail {
+      font-size: 12px;
+      color: #666;
+      margin-top: 4px;
+    }
+
+    .progress-bar {
+      width: 100%;
+      height: 24px;
+      background: #e0e0e0;
+      border-radius: 12px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+      transition: width 0.5s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .loading {
+      text-align: center;
+      padding: 60px;
+      color: #999;
+    }
+
+    .btn {
+      padding: 10px 20px;
+      background: white;
+      border: 2px solid white;
+      border-radius: 6px;
+      color: #667eea;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn:hover {
+      background: rgba(255, 255, 255, 0.2);
+      color: white;
+      border-color: white;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1><span>🐒</span> Productivity Monkey</h1>
+    <button class="btn" onclick="viewReport()">View Full Report</button>
+  </div>
+
+  <div class="container">
+    <div id="loading" class="loading">
+      <h2>Loading your productivity data...</h2>
+    </div>
+
+    <div id="content" style="display: none;">
+      <div class="stats-grid">
+        <div class="stat-card focus-score">
+          <div class="stat-label">Focus Score</div>
+          <div class="stat-value" id="focusScore">--</div>
+          <div class="stat-sub">Out of 100</div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-label">Deep Work</div>
+          <div class="stat-value" id="deepWork">--</div>
+          <div class="stat-sub">Hours this week</div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-label">Active Hours</div>
+          <div class="stat-value" id="activeHours">--</div>
+          <div class="stat-sub">Total productive time</div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-label">Context Switches</div>
+          <div class="stat-value" id="contextSwitches">--</div>
+          <div class="stat-sub">Per hour</div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">📊 Time Distribution</div>
+        <div style="margin-bottom: 10px;">
+          <strong>Deep Work</strong>
+          <div class="progress-bar">
+            <div class="progress-fill" id="deepWorkBar" style="width: 0%">0%</div>
+          </div>
+        </div>
+        <div style="margin-bottom: 10px;">
+          <strong>Shallow Work</strong>
+          <div class="progress-bar">
+            <div class="progress-fill" id="shallowWorkBar" style="width: 0%">0%</div>
+          </div>
+        </div>
+        <div style="margin-bottom: 10px;">
+          <strong>Admin</strong>
+          <div class="progress-bar">
+            <div class="progress-fill" id="adminBar" style="width: 0%">0%</div>
+          </div>
+        </div>
+        <div>
+          <strong>Unproductive</strong>
+          <div class="progress-bar">
+            <div class="progress-fill" id="unproductiveBar" style="width: 0%; background: #e74c3c;">0%</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">🧰 Top Applications</div>
+        <div class="app-list" id="appList">
+          <!-- Apps will be populated here -->
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">🌐 Browser Activity (Websites Visited)</div>
+        <div class="app-list" id="browserList">
+          <!-- Browser activity will be populated here -->
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">🔧 Integration Diagnostics</div>
+        <div id="diagnostics" style="display: flex; flex-direction: column; gap: 12px;">
+          <!-- Diagnostics will be populated here -->
+        </div>
+        <button class="btn" style="margin-top: 20px; background: #667eea; color: white;" onclick="runDiagnostics()">Refresh Diagnostics</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const { ipcRenderer } = require('electron');
+
+    async function loadDashboard() {
+      try {
+        const data = await ipcRenderer.invoke('get-dashboard-data');
+
+        if (!data) {
+          document.getElementById('loading').innerHTML = '<h2>Please complete setup first</h2>';
+          return;
+        }
+
+        const { metrics, appUsage, browserActivity, user } = data;
+
+        // Update stats
+        document.getElementById('focusScore').textContent = metrics.focusScore || 0;
+        document.getElementById('deepWork').textContent = (metrics.deepWorkHours || 0).toFixed(1) + 'h';
+        document.getElementById('activeHours').textContent = (metrics.activeHours || 0).toFixed(1) + 'h';
+        document.getElementById('contextSwitches').textContent = (metrics.contextSwitchesPerHour || 0).toFixed(0);
+
+        // Update progress bars
+        const total = metrics.activeHours || 1;
+        updateBar('deepWorkBar', (metrics.deepWorkHours / total) * 100);
+        updateBar('shallowWorkBar', (metrics.shallowWorkHours / total) * 100);
+        updateBar('adminBar', (metrics.adminHours / total) * 100);
+        updateBar('unproductiveBar', (metrics.unproductiveHours / total) * 100);
+
+        // Update app list
+        const appList = document.getElementById('appList');
+        appList.innerHTML = '';
+
+        appUsage.slice(0, 10).forEach(app => {
+          const item = document.createElement('div');
+          item.className = 'app-item';
+          item.innerHTML = `
+            <div>
+              <span class="app-name">${app.appName}</span>
+              <span class="app-category category-${app.category}">${app.category}</span>
+            </div>
+            <span class="app-time">${app.timeUsed.toFixed(1)}h</span>
+          `;
+          appList.appendChild(item);
+        });
+
+        // Update browser activity list
+        const browserList = document.getElementById('browserList');
+        browserList.innerHTML = '';
+
+        if (browserActivity && browserActivity.length > 0) {
+          browserActivity.slice(0, 15).forEach(site => {
+            const item = document.createElement('div');
+            item.className = 'website-item';
+
+            // Extract domain from URL for display
+            let domain = 'Unknown';
+            try {
+              const url = new URL(site.url);
+              domain = url.hostname;
+            } catch (e) {
+              domain = site.url;
+            }
+
+            item.innerHTML = `
+              <div class="website-header">
+                <div class="website-title">
+                  ${site.title || domain}
+                  <span class="app-category category-${site.category}">${site.category}</span>
+                </div>
+                <span class="app-time">${site.timeSpent.toFixed(1)}h</span>
+              </div>
+              <a href="${site.url}" class="website-url" target="_blank" onclick="event.preventDefault(); require('electron').shell.openExternal('${site.url}')">${site.url}</a>
+              <div class="website-stats">
+                <span>⏱️ ${site.visitCount} visits</span>
+                <span>⌨️ ${site.keystrokesCount} keystrokes</span>
+                <span>🖱️ ${site.mouseMovements} clicks/scrolls</span>
+              </div>
+            `;
+            browserList.appendChild(item);
+          });
+        } else {
+          browserList.innerHTML = '<div class="app-item" style="text-align: center; color: #999;">No browser activity recorded yet. Make sure the browser extension is installed and connected.</div>';
+        }
+
+        // Show content
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('content').style.display = 'block';
+
+      } catch (error) {
+        console.error('Error loading dashboard:', error);
+        document.getElementById('loading').innerHTML = '<h2>Error loading data</h2>';
+      }
+    }
+
+    function updateBar(id, percent) {
+      const bar = document.getElementById(id);
+      const rounded = Math.round(percent);
+      bar.style.width = rounded + '%';
+      bar.textContent = rounded + '%';
+    }
+
+    async function viewReport() {
+      const report = await ipcRenderer.invoke('export-report', null, 'text');
+      console.log(report);
+
+      // Create a new window to display the report
+      const reportWindow = window.open('', 'Report', 'width=800,height=900');
+      reportWindow.document.write(`
+        <html>
+        <head><title>Weekly Report</title>
+        <style>
+          body { font-family: monospace; padding: 20px; background: #1e1e1e; color: #d4d4d4; }
+          pre { white-space: pre-wrap; word-wrap: break-word; }
+        </style>
+        </head>
+        <body><pre>${report}</pre></body>
+        </html>
+      `);
+    }
+
+    async function runDiagnostics() {
+      try {
+        const diagnostics = await ipcRenderer.invoke('run-diagnostics');
+        const container = document.getElementById('diagnostics');
+        container.innerHTML = '';
+
+        // Desktop tracking
+        addDiagnostic(container, 'Desktop Tracking',
+          diagnostics.desktopTracking.status,
+          diagnostics.desktopTracking.message);
+
+        // Database
+        addDiagnostic(container, 'Database',
+          diagnostics.database.status,
+          `${diagnostics.database.totalRecords} total records, ${diagnostics.database.recentRecords} in last hour`);
+
+        // Browser activity
+        addDiagnostic(container, 'Browser Activity Data',
+          diagnostics.browserActivity.status,
+          `${diagnostics.browserActivity.count} browser records found, ${diagnostics.browserActivity.recentCount} in last hour`);
+
+        // Native messaging manifest
+        addDiagnostic(container, 'Native Messaging Manifest (Chrome)',
+          diagnostics.nativeMessaging.chrome.status,
+          diagnostics.nativeMessaging.chrome.message);
+
+        addDiagnostic(container, 'Native Messaging Manifest (Edge)',
+          diagnostics.nativeMessaging.edge.status,
+          diagnostics.nativeMessaging.edge.message);
+
+        // Extension ID
+        if (diagnostics.nativeMessaging.chrome.extensionId) {
+          addDiagnostic(container, 'Configured Extension ID',
+            'info',
+            diagnostics.nativeMessaging.chrome.extensionId);
+        }
+
+      } catch (error) {
+        console.error('Error running diagnostics:', error);
+        document.getElementById('diagnostics').innerHTML =
+          '<div class="diagnostic-item"><span class="diagnostic-label">Error running diagnostics</span></div>';
+      }
+    }
+
+    function addDiagnostic(container, label, status, detail) {
+      const item = document.createElement('div');
+      item.className = 'diagnostic-item';
+
+      let statusClass = 'status-error';
+      let statusText = '✗';
+
+      if (status === 'ok') {
+        statusClass = 'status-ok';
+        statusText = '✓';
+      } else if (status === 'warning') {
+        statusClass = 'status-warning';
+        statusText = '!';
+      } else if (status === 'info') {
+        statusClass = 'status-ok';
+        statusText = 'ℹ';
+      }
+
+      item.innerHTML = `
+        <div>
+          <div class="diagnostic-label">${label}</div>
+          ${detail ? `<div class="diagnostic-detail">${detail}</div>` : ''}
+        </div>
+        <div class="diagnostic-status">
+          <span class="status-icon ${statusClass}">${statusText}</span>
+        </div>
+      `;
+      container.appendChild(item);
+    }
+
+    // Load dashboard on startup
+    loadDashboard();
+    runDiagnostics();
+
+    // Refresh every 30 seconds
+    setInterval(loadDashboard, 30000);
+  </script>
+</body>
+</html>

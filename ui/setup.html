@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Setup - Productivity Monkey</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .container {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      padding: 40px;
+      width: 100%;
+      max-width: 500px;
+    }
+
+    h1 {
+      font-size: 28px;
+      color: #333;
+      margin-bottom: 10px;
+      text-align: center;
+    }
+
+    .subtitle {
+      text-align: center;
+      color: #666;
+      margin-bottom: 30px;
+      font-size: 14px;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 8px;
+      color: #333;
+      font-weight: 500;
+      font-size: 14px;
+    }
+
+    input, select {
+      width: 100%;
+      padding: 12px;
+      border: 2px solid #e0e0e0;
+      border-radius: 6px;
+      font-size: 14px;
+      transition: border-color 0.3s;
+    }
+
+    input:focus, select:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+
+    button {
+      width: 100%;
+      padding: 14px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+
+    button:hover {
+      transform: translateY(-2px);
+    }
+
+    button:active {
+      transform: translateY(0);
+    }
+
+    .emoji {
+      font-size: 48px;
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    .error {
+      color: #e74c3c;
+      font-size: 12px;
+      margin-top: 5px;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="emoji">🐒</div>
+    <h1>Welcome to Productivity Monkey</h1>
+    <p class="subtitle">Let's get you set up to track your productivity</p>
+
+    <form id="setupForm">
+      <div class="form-group">
+        <label for="name">Full Name *</label>
+        <input type="text" id="name" required>
+        <span class="error" id="nameError">Please enter your name</span>
+      </div>
+
+      <div class="form-group">
+        <label for="email">Email *</label>
+        <input type="email" id="email" required>
+        <span class="error" id="emailError">Please enter a valid email</span>
+      </div>
+
+      <div class="form-group">
+        <label for="title">Job Title *</label>
+        <input type="text" id="title" required>
+        <span class="error" id="titleError">Please enter your job title</span>
+      </div>
+
+      <div class="form-group">
+        <label for="team">Team Name *</label>
+        <input type="text" id="team" required>
+        <span class="error" id="teamError">Please enter your team name</span>
+      </div>
+
+      <div class="form-group">
+        <label for="department">Department *</label>
+        <input type="text" id="department" required>
+        <span class="error" id="departmentError">Please enter your department</span>
+      </div>
+
+      <div class="form-group">
+        <label for="managerId">Manager Email (optional)</label>
+        <input type="email" id="managerId">
+      </div>
+
+      <button type="submit">Start Tracking 🚀</button>
+    </form>
+  </div>
+
+  <script>
+    const { ipcRenderer } = require('electron');
+
+    document.getElementById('setupForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const name = document.getElementById('name').value.trim();
+      const email = document.getElementById('email').value.trim();
+      const title = document.getElementById('title').value.trim();
+      const team = document.getElementById('team').value.trim();
+      const department = document.getElementById('department').value.trim();
+      const managerId = document.getElementById('managerId').value.trim();
+
+      if (!name || !email || !title || !team || !department) {
+        alert('Please fill in all required fields');
+        return;
+      }
+
+      try {
+        const result = await ipcRenderer.invoke('setup-user', {
+          name,
+          email,
+          title,
+          team,
+          department,
+          managerId: managerId || undefined
+        });
+
+        if (result.success) {
+          alert('Setup complete! Productivity Monkey is now tracking.');
+          window.close();
+        }
+      } catch (error) {
+        alert('Error during setup: ' + error.message);
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,9 @@
+{
+  "name": "com.prodmon.app",
+  "description": "Productivity Monkey Native Messaging Host",
+  "path": "/Applications/Productivity Monkey.app/Contents/Resources/app/dist/native-host.js",
+  "type": "stdio",
+  "allowed_origins": [
+    "chrome-extension://EXTENSION_ID_PLACEHOLDER/"
+  ]
+}

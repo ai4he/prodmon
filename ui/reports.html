@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reports - Productivity Monkey</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: #f5f7fa;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 12px;
+      padding: 40px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    }
+
+    h1 {
+      font-size: 28px;
+      color: #333;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .controls {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 30px;
+    }
+
+    button {
+      padding: 10px 20px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+
+    button:hover {
+      transform: translateY(-2px);
+    }
+
+    .report-container {
+      background: #1e1e1e;
+      color: #d4d4d4;
+      padding: 30px;
+      border-radius: 8px;
+      font-family: 'Monaco', 'Courier New', monospace;
+      font-size: 13px;
+      line-height: 1.6;
+      white-space: pre-wrap;
+      overflow-x: auto;
+    }
+
+    .loading {
+      text-align: center;
+      padding: 60px;
+      color: #999;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1><span>📊</span> Weekly Report</h1>
+
+    <div class="controls">
+      <button onclick="loadReport()">Refresh Report</button>
+      <button onclick="exportReport('text')">Export as Text</button>
+      <button onclick="exportReport('json')">Export as JSON</button>
+    </div>
+
+    <div id="loading" class="loading">
+      <h2>Loading report...</h2>
+    </div>
+
+    <div id="reportContent" class="report-container" style="display: none;">
+      <!-- Report will be populated here -->
+    </div>
+  </div>
+
+  <script>
+    const { ipcRenderer } = require('electron');
+    const fs = require('fs');
+    const path = require('path');
+
+    async function loadReport() {
+      document.getElementById('loading').style.display = 'block';
+      document.getElementById('reportContent').style.display = 'none';
+
+      try {
+        const report = await ipcRenderer.invoke('export-report', null, 'text');
+
+        document.getElementById('reportContent').textContent = report;
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('reportContent').style.display = 'block';
+      } catch (error) {
+        console.error('Error loading report:', error);
+        document.getElementById('loading').innerHTML = '<h2>Error loading report</h2><p>' + error.message + '</p>';
+      }
+    }
+
+    async function exportReport(format) {
+      try {
+        const report = await ipcRenderer.invoke('export-report', null, format);
+
+        const { dialog } = require('@electron/remote');
+        const extension = format === 'text' ? 'txt' : 'json';
+        const defaultPath = `productivity-report-${Date.now()}.${extension}`;
+
+        const result = await dialog.showSaveDialog({
+          title: 'Save Report',
+          defaultPath,
+          filters: [
+            { name: format === 'text' ? 'Text Files' : 'JSON Files', extensions: [extension] }
+          ]
+        });
+
+        if (!result.canceled && result.filePath) {
+          fs.writeFileSync(result.filePath, report);
+          alert('Report exported successfully!');
+        }
+      } catch (error) {
+        alert('Error exporting report: ' + error.message);
+      }
+    }
+
+    // Load report on startup
+    loadReport();
+  </script>
+</body>
+</html>
