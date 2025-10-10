@@ -1,4 +1,4 @@
-import activeWin from 'active-win';
+import { activeWindow } from 'active-win';
 import { platform } from 'os';
 import { ActivityRecord, ActivityCategory, Config } from '../types';
 import { v4 as uuidv4 } from 'uuid';
@@ -28,12 +28,12 @@ export class ActivityTracker {
       // Request with both Screen Recording and Accessibility permissions for maximum detail
       // Screen Recording: enables window title capture
       // Accessibility: enables direct URL capture from browsers (more accurate than parsing titles)
-      const activeWindow = await activeWin({
+      const activeWin = await activeWindow({
         screenRecordingPermission: true,
         accessibilityPermission: true
       });
 
-      if (!activeWindow) {
+      if (!activeWin) {
         return this.createIdleRecord();
       }
 
@@ -41,22 +41,22 @@ export class ActivityTracker {
       const isIdle = this.checkIfIdle(now);
 
       // Detect context switch
-      if (this.currentApp !== activeWindow.owner.name ||
-          this.currentWindowTitle !== activeWindow.title) {
+      if (this.currentApp !== activeWin.owner.name ||
+          this.currentWindowTitle !== activeWin.title) {
         this.sessionStartTime = now;
-        this.currentApp = activeWindow.owner.name;
-        this.currentWindowTitle = activeWindow.title;
+        this.currentApp = activeWin.owner.name;
+        this.currentWindowTitle = activeWin.title;
       }
 
       // Use URL from active-win if available (via Accessibility permission on macOS)
       // This is much more accurate than parsing titles and works for all supported browsers
-      const url = ('url' in activeWindow ? activeWindow.url : undefined) || this.extractUrlFromTitle(activeWindow.title);
-      const mediaInfo = this.detectMedia(activeWindow.title, activeWindow.owner.name);
+      const url = ('url' in activeWin ? activeWin.url : undefined) || this.extractUrlFromTitle(activeWin.title);
+      const mediaInfo = this.detectMedia(activeWin.title, activeWin.owner.name);
 
       // Try LLM categorization first, fallback to rule-based
       let category = await this.categorizeSmart(
-        activeWindow.owner.name,
-        activeWindow.title,
+        activeWin.owner.name,
+        activeWin.title,
         url,
         isIdle
       );
@@ -64,8 +64,8 @@ export class ActivityTracker {
       // If LLM not available or failed, use rule-based
       if (!category) {
         category = this.categorizeActivity(
-          activeWindow.owner.name,
-          activeWindow.title,
+          activeWin.owner.name,
+          activeWin.title,
           url,
           isIdle
         );
@@ -75,8 +75,8 @@ export class ActivityTracker {
         id: uuidv4(),
         userId: this.config.userId,
         timestamp: now,
-        appName: activeWindow.owner.name,
-        windowTitle: activeWindow.title,
+        appName: activeWin.owner.name,
+        windowTitle: activeWin.title,
         url,
         category,
         keystrokesCount: this.keystrokesInInterval,
