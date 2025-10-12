@@ -170,6 +170,27 @@
     </div>
 
     <div class="section">
+      <h2>Server Configuration</h2>
+
+      <div class="setting-item">
+        <label for="serverUrl">Server URL (leave empty for local-only mode)</label>
+        <input type="text" id="serverUrl" placeholder="https://prodmon.haielab.org">
+        <div class="info">URL of the remote server for centralized team tracking. Leave empty to use local storage only.</div>
+      </div>
+
+      <div class="setting-item">
+        <label for="serverApiKey">Server API Key</label>
+        <input type="text" id="serverApiKey" placeholder="Enter API key provided by your server admin">
+        <div class="info">Required when using remote server</div>
+      </div>
+
+      <div class="setting-item">
+        <button onclick="testConnection()" style="background: #4caf50; margin-right: 10px;">Test Connection</button>
+        <span id="connectionStatus"></span>
+      </div>
+    </div>
+
+    <div class="section">
       <h2>Reports</h2>
 
       <div class="setting-item">
@@ -202,9 +223,85 @@
   </div>
 
   <script>
+    const { ipcRenderer } = require('electron');
+    const Store = require('electron-store');
+    const store = new Store();
+
+    // Load current settings
+    window.addEventListener('DOMContentLoaded', () => {
+      const config = store.get('config');
+      if (config) {
+        document.getElementById('trackingInterval').value = (config.trackingInterval || 5000) / 1000;
+        document.getElementById('idleThreshold').value = (config.idleThreshold || 300000) / 60000;
+        document.getElementById('serverUrl').value = config.serverUrl || '';
+        document.getElementById('serverApiKey').value = config.serverApiKey || '';
+      }
+    });
+
+    async function testConnection() {
+      const serverUrl = document.getElementById('serverUrl').value.trim();
+      const statusEl = document.getElementById('connectionStatus');
+
+      if (!serverUrl) {
+        statusEl.textContent = '⚠️ Please enter a server URL';
+        statusEl.style.color = '#ff9800';
+        return;
+      }
+
+      statusEl.textContent = '⏳ Testing connection...';
+      statusEl.style.color = '#2196f3';
+
+      try {
+        const url = serverUrl.replace(/\/$/, '') + '/health';
+        const response = await fetch(url, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data.status === 'ok') {
+            statusEl.textContent = '✅ Connection successful!';
+            statusEl.style.color = '#4caf50';
+          } else {
+            statusEl.textContent = '❌ Server returned invalid response';
+            statusEl.style.color = '#f44336';
+          }
+        } else {
+          statusEl.textContent = `❌ Connection failed (${response.status})`;
+          statusEl.style.color = '#f44336';
+        }
+      } catch (error) {
+        statusEl.textContent = `❌ Connection failed: ${error.message}`;
+        statusEl.style.color = '#f44336';
+      }
+    }
+
     function saveSettings() {
-      // In a real implementation, this would save to electron-store
-      alert('Settings saved successfully!');
+      const config = store.get('config') || {};
+
+      // Update config with new values
+      config.trackingInterval = parseInt(document.getElementById('trackingInterval').value) * 1000;
+      config.idleThreshold = parseInt(document.getElementById('idleThreshold').value) * 60000;
+
+      const serverUrl = document.getElementById('serverUrl').value.trim();
+      const serverApiKey = document.getElementById('serverApiKey').value.trim();
+
+      if (serverUrl) {
+        config.serverUrl = serverUrl;
+        config.serverApiKey = serverApiKey;
+      } else {
+        // Remove server config for local-only mode
+        delete config.serverUrl;
+        delete config.serverApiKey;
+      }
+
+      // Save to store
+      store.set('config', config);
+
+      alert('Settings saved successfully! Please restart the app for changes to take effect.');
     }
   </script>
 </body>
