@@ -1,4 +1,3 @@
-import activeWindow from 'active-win';
 import { platform } from 'os';
 import { ActivityRecord, ActivityCategory, Config } from '../types';
 import { v4 as uuidv4 } from 'uuid';
@@ -25,6 +24,11 @@ export class ActivityTracker {
 
   async captureActivity(): Promise<ActivityRecord | null> {
     try {
+      // Dynamic import for cross-platform compatibility
+      // active-win v9.0.0 is an ES module, but we compile to CommonJS
+      // Dynamic import works consistently across Mac, Windows, and Linux
+      const { activeWindow } = await import('active-win');
+
       // Request with both Screen Recording and Accessibility permissions for maximum detail
       // Screen Recording: enables window title capture
       // Accessibility: enables direct URL capture from browsers (more accurate than parsing titles)
