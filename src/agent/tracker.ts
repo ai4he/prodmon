@@ -1,4 +1,4 @@
-import { activeWindow } from 'active-win';
+import activeWindow from 'active-win';
 import { platform } from 'os';
 import { ActivityRecord, ActivityCategory, Config } from '../types';
 import { v4 as uuidv4 } from 'uuid';
