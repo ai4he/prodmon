@@ -9,7 +9,7 @@ import { ActivityRecord, User, Config } from '../types';
 import { v4 as uuidv4 } from 'uuid';
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = Number(process.env.PORT) || 3000;
 const DB_PATH = process.env.DB_PATH || './prodmon-server.db';
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
@@ -528,11 +528,12 @@ app.get('/api/llm/status', (req: Request, res: Response) => {
 // ============================================================================
 
 initializeServices().then(() => {
-  app.listen(PORT, () => {
+  app.listen(PORT, '0.0.0.0', () => {
     console.log('═══════════════════════════════════════════════════');
     console.log('  🐒 Productivity Monkey Server');
     console.log('═══════════════════════════════════════════════════');
     console.log(`  Port: ${PORT}`);
+    console.log(`  Host: 0.0.0.0 (all interfaces)`);
     console.log(`  Database: ${DB_PATH}`);
     console.log(`  LLM: ${llmService ? 'Enabled' : 'Disabled'}`);
     console.log(`  Auth: Disabled (open access for debugging)`);
