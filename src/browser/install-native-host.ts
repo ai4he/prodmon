@@ -19,11 +19,22 @@ export function installNativeMessagingHost(extensionId: string) {
     : join(app.getAppPath(), 'native-host-runner.js');
 
   // Find node executable
-  let nodePath = '/usr/local/bin/node'; // Default
+  let nodePath: string;
   try {
-    nodePath = execSync('which node').toString().trim();
+    if (platform === 'win32') {
+      // Windows: use 'where' command
+      nodePath = execSync('where node').toString().trim().split('\n')[0];
+    } else {
+      // Unix/macOS: use 'which' command
+      nodePath = execSync('which node').toString().trim();
+    }
   } catch (error) {
-    // Use default
+    // Fallback to defaults
+    if (platform === 'win32') {
+      nodePath = 'node'; // Will use PATH
+    } else {
+      nodePath = '/usr/local/bin/node';
+    }
   }
 
   // Create wrapper executable script
@@ -103,11 +114,22 @@ export function installNativeMessagingHostForEdge(extensionId: string) {
     : join(app.getAppPath(), 'native-host-runner.js');
 
   // Find node executable
-  let nodePath = '/usr/local/bin/node';
+  let nodePath: string;
   try {
-    nodePath = execSync('which node').toString().trim();
+    if (platform === 'win32') {
+      // Windows: use 'where' command
+      nodePath = execSync('where node').toString().trim().split('\n')[0];
+    } else {
+      // Unix/macOS: use 'which' command
+      nodePath = execSync('which node').toString().trim();
+    }
   } catch (error) {
-    // Use default
+    // Fallback to defaults
+    if (platform === 'win32') {
+      nodePath = 'node'; // Will use PATH
+    } else {
+      nodePath = '/usr/local/bin/node';
+    }
   }
 
   // Use same wrapper as Chrome

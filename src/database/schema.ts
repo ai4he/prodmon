@@ -39,6 +39,14 @@ export class DatabaseManager {
 
     const SQL = await initSqlJs();
 
+    // Ensure parent directory exists
+    const { dirname } = require('path');
+    const { mkdirSync } = require('fs');
+    const dbDir = dirname(this.dbPath);
+    if (!existsSync(dbDir)) {
+      mkdirSync(dbDir, { recursive: true });
+    }
+
     // Load existing database or create new one
     if (existsSync(this.dbPath)) {
       const buffer = readFileSync(this.dbPath);

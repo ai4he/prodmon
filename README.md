@@ -29,10 +29,13 @@ Productivity Monkey is a comprehensive productivity monitoring and analytics too
 
 ### Prerequisites
 
-- Node.js 18+
-- macOS 10.14+ or Windows 10+
+- **Node.js 18+**
+- **Operating System:**
+  - macOS 10.14+
+  - Windows 10/11
+  - Linux (Ubuntu 20.04+, with X11)
 
-### Setup
+### Quick Setup
 
 ```bash
 # Install dependencies
@@ -44,6 +47,11 @@ npm run build
 # Run the application
 npm start
 ```
+
+### Platform-Specific Setup
+
+- **Windows**: See [Windows Setup Guide](docs/WINDOWS_SETUP.md) for detailed instructions
+- **macOS**: See [macOS Permissions](docs/MACOS_PERMISSIONS.md) for required permissions
 
 ## Quick Start
 

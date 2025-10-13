@@ -88,6 +88,18 @@ Complete documentation for setup, configuration, deployment, and troubleshooting
 
 ---
 
+## 💻 Windows-Specific
+
+- **[Windows Setup](WINDOWS_SETUP.md)** - Complete Windows 10/11 setup guide
+  - Prerequisites and installation
+  - Native module building
+  - Browser extension setup
+  - Native messaging configuration
+  - Building Windows installer
+  - Troubleshooting Windows-specific issues
+
+---
+
 ## 🍎 macOS-Specific
 
 ### Permissions & Setup
@@ -134,10 +146,11 @@ Complete documentation for setup, configuration, deployment, and troubleshooting
 4. [Extension Memory Leak Fix](EXTENSION_MEMORY_LEAK_FIX.md)
 
 ### For Troubleshooting
-1. [macOS Permissions](MACOS_PERMISSIONS.md)
-2. [Enable Accessibility](ENABLE_ACCESSIBILITY.md)
-3. [Extension Memory Leak Fix](EXTENSION_MEMORY_LEAK_FIX.md) - Browser crashes
-4. [Server Startup Checklist](SERVER_STARTUP_CHECKLIST.md) - Server issues
+1. [Windows Setup](WINDOWS_SETUP.md) - Windows-specific issues
+2. [macOS Permissions](MACOS_PERMISSIONS.md) - macOS-specific issues
+3. [Enable Accessibility](ENABLE_ACCESSIBILITY.md) - Permission issues
+4. [Extension Memory Leak Fix](EXTENSION_MEMORY_LEAK_FIX.md) - Browser crashes
+5. [Server Startup Checklist](SERVER_STARTUP_CHECKLIST.md) - Server issues
 
 ---
 
@@ -145,6 +158,7 @@ Complete documentation for setup, configuration, deployment, and troubleshooting
 
 | Need to... | See document |
 |-----------|-------------|
+| Set up on Windows | [Windows Setup](WINDOWS_SETUP.md) |
 | Deploy server for first time | [Server Startup Checklist](SERVER_STARTUP_CHECKLIST.md) |
 | Configure client to use remote server | [Client-Server Setup](CLIENT_SERVER_SETUP.md) |
 | Enable AI categorization | [LLM Quick Start](LLM_QUICK_START.md) |
