@@ -33,7 +33,7 @@ class ProductivityMonkeyApp {
     this.metricsCalc = new MetricsCalculator(this.db);
 
     // Initialize LLM service
-    const geminiApiKey = process.env.GEMINI_API_KEY || 'AIzaSyBJSX1VOTwdl1Eln4UYlXNDlfeyJviEXJk';
+    const geminiApiKey = process.env.GEMINI_API_KEY || 'AIzaSyBuqnhRfkuqgbC8I122ChbOKMBO2WDFHdg';
     this.llmService = new GeminiService(geminiApiKey);
 
     this.reportGen = new ReportGenerator(this.db, this.llmService);
@@ -436,7 +436,7 @@ class ProductivityMonkeyApp {
     );
 
     // Get Gemini API key from environment or config
-    const geminiApiKey = process.env.GEMINI_API_KEY || 'AIzaSyBJSX1VOTwdl1Eln4UYlXNDlfeyJviEXJk';
+    const geminiApiKey = process.env.GEMINI_API_KEY || 'AIzaSyBuqnhRfkuqgbC8I122ChbOKMBO2WDFHdg';
 
     this.agent = new ProductivityAgent(config, this.db, geminiApiKey);
     this.agent.start();

@@ -36,9 +36,9 @@ export class GeminiService {
     if (apiKey) {
       try {
         this.genAI = new GoogleGenerativeAI(apiKey);
-        // Use gemini-1.5-flash - smallest, fastest, highest free quota
-        this.model = this.genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
-        console.log('✓ Gemini LLM service initialized (gemini-1.5-flash)');
+        // Use gemini-flash-lite-latest - fastest, most lightweight model
+        this.model = this.genAI.getGenerativeModel({ model: 'gemini-flash-lite-latest' });
+        console.log('✓ Gemini LLM service initialized (gemini-flash-lite-latest)');
       } catch (error) {
         console.error('Failed to initialize Gemini:', error);
         this.enabled = false;
