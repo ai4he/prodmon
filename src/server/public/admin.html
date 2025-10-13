@@ -1,0 +1,1028 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Team Dashboard - Productivity Monkey</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --primary: #667eea;
+      --primary-dark: #5568d3;
+      --secondary: #764ba2;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --dark: #1f2937;
+      --gray: #6b7280;
+      --light-gray: #f3f4f6;
+      --white: #ffffff;
+      --shadow: 0 1px 3px rgba(0,0,0,0.1);
+      --shadow-lg: 0 10px 25px rgba(0,0,0,0.1);
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+      background: var(--light-gray);
+      color: var(--dark);
+      line-height: 1.6;
+    }
+
+    /* Header */
+    header {
+      background: var(--white);
+      box-shadow: var(--shadow);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .header-content {
+      max-width: 1600px;
+      margin: 0 auto;
+      padding: 1rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--primary);
+      text-decoration: none;
+    }
+
+    .logo-icon {
+      font-size: 2rem;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 1.5rem;
+      align-items: center;
+    }
+
+    .nav-link {
+      color: var(--gray);
+      text-decoration: none;
+      font-weight: 500;
+      transition: color 0.2s;
+      padding: 0.5rem 1rem;
+      border-radius: 0.5rem;
+    }
+
+    .nav-link:hover {
+      color: var(--primary);
+      background: var(--light-gray);
+    }
+
+    .nav-link.active {
+      color: var(--primary);
+      background: var(--light-gray);
+    }
+
+    .user-menu {
+      display: flex;
+      align-items: center;
+      gap: 1.5rem;
+    }
+
+    .user-profile {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .user-avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: 600;
+    }
+
+    .user-avatar img {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      object-fit: cover;
+    }
+
+    .signout-btn {
+      padding: 0.5rem 1rem;
+      background: transparent;
+      color: var(--gray);
+      border: 1px solid var(--gray);
+      border-radius: 0.5rem;
+      cursor: pointer;
+      font-size: 0.875rem;
+      transition: all 0.2s;
+    }
+
+    .signout-btn:hover {
+      background: var(--danger);
+      color: white;
+      border-color: var(--danger);
+    }
+
+    /* Main Content */
+    main {
+      max-width: 1600px;
+      margin: 0 auto;
+      padding: 2rem;
+    }
+
+    .page-header {
+      margin-bottom: 2rem;
+    }
+
+    .page-header h1 {
+      font-size: 2rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .page-header p {
+      color: var(--gray);
+      font-size: 1rem;
+    }
+
+    /* Filters */
+    .filters {
+      background: var(--white);
+      padding: 1.5rem;
+      border-radius: 1rem;
+      box-shadow: var(--shadow);
+      margin-bottom: 2rem;
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .filter-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .filter-group label {
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: var(--gray);
+    }
+
+    .filter-group select {
+      padding: 0.5rem 1rem;
+      border: 2px solid var(--light-gray);
+      border-radius: 0.5rem;
+      font-size: 0.875rem;
+      cursor: pointer;
+      transition: border-color 0.2s;
+    }
+
+    .filter-group select:focus {
+      outline: none;
+      border-color: var(--primary);
+    }
+
+    /* Team Stats Grid */
+    .team-stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 1.5rem;
+      margin-bottom: 2rem;
+    }
+
+    .stat-card {
+      background: var(--white);
+      padding: 1.5rem;
+      border-radius: 1rem;
+      box-shadow: var(--shadow);
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .stat-card:hover {
+      transform: translateY(-4px);
+      box-shadow: var(--shadow-lg);
+    }
+
+    .stat-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 1rem;
+    }
+
+    .stat-title {
+      font-size: 0.875rem;
+      color: var(--gray);
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .stat-icon {
+      font-size: 2rem;
+      opacity: 0.8;
+    }
+
+    .stat-value {
+      font-size: 2.5rem;
+      font-weight: 700;
+      color: var(--dark);
+      margin-bottom: 0.5rem;
+    }
+
+    .stat-subtitle {
+      font-size: 0.875rem;
+      color: var(--gray);
+    }
+
+    /* Charts */
+    .charts-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+      gap: 1.5rem;
+      margin-bottom: 2rem;
+    }
+
+    .chart-card {
+      background: var(--white);
+      padding: 1.5rem;
+      border-radius: 1rem;
+      box-shadow: var(--shadow);
+    }
+
+    .chart-card h3 {
+      margin-bottom: 1.5rem;
+      font-size: 1.125rem;
+    }
+
+    .chart-container {
+      position: relative;
+      height: 300px;
+    }
+
+    /* Team Members */
+    .team-members-section {
+      background: var(--white);
+      padding: 1.5rem;
+      border-radius: 1rem;
+      box-shadow: var(--shadow);
+      margin-bottom: 2rem;
+    }
+
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.5rem;
+    }
+
+    .section-header h3 {
+      font-size: 1.25rem;
+    }
+
+    .sort-buttons {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .sort-btn {
+      padding: 0.5rem 1rem;
+      background: transparent;
+      border: 1px solid var(--light-gray);
+      border-radius: 0.5rem;
+      cursor: pointer;
+      font-size: 0.875rem;
+      transition: all 0.2s;
+    }
+
+    .sort-btn:hover {
+      background: var(--light-gray);
+    }
+
+    .sort-btn.active {
+      background: var(--primary);
+      color: white;
+      border-color: var(--primary);
+    }
+
+    .members-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 1.5rem;
+    }
+
+    .member-card {
+      background: var(--light-gray);
+      padding: 1.5rem;
+      border-radius: 0.75rem;
+      transition: transform 0.2s, box-shadow 0.2s;
+      cursor: pointer;
+    }
+
+    .member-card:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow);
+    }
+
+    .member-header {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+
+    .member-avatar {
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: 600;
+      font-size: 1.25rem;
+    }
+
+    .member-avatar img {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      object-fit: cover;
+    }
+
+    .member-info h4 {
+      font-size: 1rem;
+      margin-bottom: 0.25rem;
+    }
+
+    .member-info p {
+      font-size: 0.875rem;
+      color: var(--gray);
+    }
+
+    .member-stats {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 0.75rem;
+    }
+
+    .member-stat {
+      text-align: center;
+      padding: 0.5rem;
+      background: var(--white);
+      border-radius: 0.5rem;
+    }
+
+    .member-stat-value {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--primary);
+    }
+
+    .member-stat-label {
+      font-size: 0.75rem;
+      color: var(--gray);
+      text-transform: uppercase;
+    }
+
+    /* Leaderboard */
+    .leaderboard {
+      background: var(--white);
+      padding: 1.5rem;
+      border-radius: 1rem;
+      box-shadow: var(--shadow);
+    }
+
+    .leaderboard h3 {
+      font-size: 1.25rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .leaderboard-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .leaderboard-item {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      padding: 1rem;
+      background: var(--light-gray);
+      border-radius: 0.5rem;
+    }
+
+    .rank {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--gray);
+      min-width: 40px;
+      text-align: center;
+    }
+
+    .rank.top-1 {
+      color: #fbbf24;
+    }
+
+    .rank.top-2 {
+      color: #9ca3af;
+    }
+
+    .rank.top-3 {
+      color: #f97316;
+    }
+
+    .leaderboard-member {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .leaderboard-avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: 600;
+    }
+
+    .leaderboard-avatar img {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      object-fit: cover;
+    }
+
+    .leaderboard-info h4 {
+      font-size: 0.9375rem;
+      margin-bottom: 0.125rem;
+    }
+
+    .leaderboard-info p {
+      font-size: 0.8125rem;
+      color: var(--gray);
+    }
+
+    .leaderboard-score {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--primary);
+      min-width: 80px;
+      text-align: right;
+    }
+
+    /* Loading */
+    .loading {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 4rem;
+      text-align: center;
+    }
+
+    .spinner {
+      width: 50px;
+      height: 50px;
+      border: 4px solid var(--light-gray);
+      border-top-color: var(--primary);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-bottom: 1rem;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Empty State */
+    .empty-state {
+      text-align: center;
+      padding: 3rem;
+      color: var(--gray);
+    }
+
+    .empty-state-icon {
+      font-size: 4rem;
+      margin-bottom: 1rem;
+      opacity: 0.5;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .header-content {
+        flex-direction: column;
+        gap: 1rem;
+      }
+
+      .charts-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .members-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .filters {
+        flex-direction: column;
+        align-items: stretch;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <header>
+    <div class="header-content">
+      <a href="/" class="logo">
+        <span class="logo-icon">🐵</span>
+        <span>Productivity Monkey</span>
+      </a>
+      <nav class="nav-links">
+        <a href="/dashboard.html" class="nav-link">My Dashboard</a>
+        <a href="/admin.html" class="nav-link active">Team Dashboard</a>
+      </nav>
+      <div class="user-menu">
+        <div class="user-profile">
+          <div class="user-avatar" id="userAvatar">
+            <span id="userInitials">U</span>
+          </div>
+          <div>
+            <div class="user-name" id="userName">Loading...</div>
+          </div>
+        </div>
+        <button class="signout-btn" onclick="signOut()">Sign Out</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main id="mainContent">
+    <div class="loading" id="loadingState">
+      <div class="spinner"></div>
+      <p>Loading team data...</p>
+    </div>
+  </main>
+
+  <script>
+    const API_URL = window.location.origin;
+    let currentUser = null;
+    let teamData = null;
+    let allMembers = [];
+    let charts = {};
+
+    // Check authentication on load
+    window.addEventListener('load', async () => {
+      const token = localStorage.getItem('auth_token');
+      if (!token) {
+        window.location.href = '/auth.html';
+        return;
+      }
+
+      try {
+        const response = await fetch(`${API_URL}/auth/me`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (!response.ok) throw new Error('Authentication failed');
+
+        currentUser = await response.json();
+        displayUserInfo();
+        await loadTeamData();
+      } catch (error) {
+        console.error('Auth error:', error);
+        localStorage.removeItem('auth_token');
+        window.location.href = '/auth.html';
+      }
+    });
+
+    function displayUserInfo() {
+      document.getElementById('userName').textContent = currentUser.name;
+      const avatarEl = document.getElementById('userAvatar');
+      if (currentUser.profilePicture) {
+        avatarEl.innerHTML = `<img src="${currentUser.profilePicture}" alt="${currentUser.name}">`;
+      } else {
+        const initials = currentUser.name.split(' ').map(n => n[0]).join('').toUpperCase();
+        document.getElementById('userInitials').textContent = initials;
+      }
+    }
+
+    async function loadTeamData() {
+      const token = localStorage.getItem('auth_token');
+
+      try {
+        const now = Date.now();
+        const weekStart = getWeekStart(now);
+        const weekEnd = getWeekEnd(now);
+
+        // Fetch all users
+        const usersRes = await fetch(`${API_URL}/api/users`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const usersData = await usersRes.json();
+
+        // Fetch metrics for each user in the same team
+        const teamMembers = usersData.users.filter(u => u.team === currentUser.team);
+
+        const memberMetrics = await Promise.all(
+          teamMembers.map(async (member) => {
+            try {
+              const metricsRes = await fetch(
+                `${API_URL}/api/metrics/weekly/${member.id}?weekStart=${weekStart}&weekEnd=${weekEnd}`,
+                { headers: { 'Authorization': `Bearer ${token}` } }
+              );
+              const metrics = await metricsRes.json();
+              return { ...member, metrics };
+            } catch (error) {
+              console.error(`Error fetching metrics for ${member.name}:`, error);
+              return { ...member, metrics: getEmptyMetrics() };
+            }
+          })
+        );
+
+        allMembers = memberMetrics;
+        renderDashboard();
+      } catch (error) {
+        console.error('Error loading team data:', error);
+        showError('Failed to load team data. Please try again.');
+      }
+    }
+
+    function renderDashboard() {
+      const teamMetrics = calculateTeamMetrics(allMembers);
+
+      const main = document.getElementById('mainContent');
+      main.innerHTML = `
+        <div class="page-header">
+          <h1>Team Dashboard: ${currentUser.team}</h1>
+          <p>Monitor your team's productivity and performance</p>
+        </div>
+
+        <!-- Filters -->
+        <div class="filters">
+          <div class="filter-group">
+            <label>Department</label>
+            <select id="departmentFilter" onchange="filterMembers()">
+              <option value="all">All Departments</option>
+              ${getUniqueDepartments().map(dept => `<option value="${dept}">${dept}</option>`).join('')}
+            </select>
+          </div>
+          <div class="filter-group">
+            <label>Sort By</label>
+            <select id="sortBy" onchange="sortMembers()">
+              <option value="focusScore">Focus Score</option>
+              <option value="deepWork">Deep Work Hours</option>
+              <option value="activeHours">Active Hours</option>
+              <option value="name">Name (A-Z)</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Team Stats -->
+        <div class="team-stats-grid">
+          <div class="stat-card">
+            <div class="stat-header">
+              <div class="stat-title">Team Members</div>
+              <div class="stat-icon">👥</div>
+            </div>
+            <div class="stat-value">${allMembers.length}</div>
+            <div class="stat-subtitle">Active this week</div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-header">
+              <div class="stat-title">Avg Focus Score</div>
+              <div class="stat-icon">🎯</div>
+            </div>
+            <div class="stat-value">${Math.round(teamMetrics.avgFocusScore)}</div>
+            <div class="stat-subtitle">Team average</div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-header">
+              <div class="stat-title">Total Deep Work</div>
+              <div class="stat-icon">💪</div>
+            </div>
+            <div class="stat-value">${teamMetrics.totalDeepWork.toFixed(1)}h</div>
+            <div class="stat-subtitle">Combined effort</div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-header">
+              <div class="stat-title">Productivity Rate</div>
+              <div class="stat-icon">📊</div>
+            </div>
+            <div class="stat-value">${Math.round(teamMetrics.productivityRate)}%</div>
+            <div class="stat-subtitle">Team efficiency</div>
+          </div>
+        </div>
+
+        <!-- Charts -->
+        <div class="charts-grid">
+          <div class="chart-card">
+            <h3>Team Focus Score Distribution</h3>
+            <div class="chart-container">
+              <canvas id="focusScoreChart"></canvas>
+            </div>
+          </div>
+
+          <div class="chart-card">
+            <h3>Deep Work Hours Comparison</h3>
+            <div class="chart-container">
+              <canvas id="deepWorkChart"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- Leaderboard -->
+        <div class="leaderboard">
+          <h3>🏆 Top Performers (Focus Score)</h3>
+          <div class="leaderboard-list" id="leaderboardList">
+            ${renderLeaderboard()}
+          </div>
+        </div>
+
+        <!-- Team Members -->
+        <div class="team-members-section">
+          <div class="section-header">
+            <h3>Team Members</h3>
+          </div>
+          <div class="members-grid" id="membersGrid">
+            ${renderMembers(allMembers)}
+          </div>
+        </div>
+      `;
+
+      renderCharts(teamMetrics);
+    }
+
+    function renderCharts(teamMetrics) {
+      // Focus Score Distribution
+      const focusCtx = document.getElementById('focusScoreChart');
+      if (focusCtx) {
+        const scores = allMembers.map(m => m.metrics.focusScore || 0);
+        charts.focusScore = new Chart(focusCtx, {
+          type: 'bar',
+          data: {
+            labels: allMembers.map(m => m.name.split(' ')[0]),
+            datasets: [{
+              label: 'Focus Score',
+              data: scores,
+              backgroundColor: scores.map(score =>
+                score >= 80 ? '#10b981' :
+                score >= 60 ? '#fbbf24' :
+                '#ef4444'
+              )
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { display: false }
+            },
+            scales: {
+              y: {
+                beginAtZero: true,
+                max: 100
+              }
+            }
+          }
+        });
+      }
+
+      // Deep Work Comparison
+      const deepWorkCtx = document.getElementById('deepWorkChart');
+      if (deepWorkCtx) {
+        charts.deepWork = new Chart(deepWorkCtx, {
+          type: 'bar',
+          data: {
+            labels: allMembers.map(m => m.name.split(' ')[0]),
+            datasets: [{
+              label: 'Deep Work Hours',
+              data: allMembers.map(m => m.metrics.deepWorkHours || 0),
+              backgroundColor: '#667eea'
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { display: false }
+            },
+            scales: {
+              y: { beginAtZero: true }
+            }
+          }
+        });
+      }
+    }
+
+    function renderLeaderboard() {
+      const sorted = [...allMembers].sort((a, b) =>
+        (b.metrics.focusScore || 0) - (a.metrics.focusScore || 0)
+      );
+
+      return sorted.slice(0, 10).map((member, index) => {
+        const rank = index + 1;
+        const rankClass = rank === 1 ? 'top-1' : rank === 2 ? 'top-2' : rank === 3 ? 'top-3' : '';
+
+        return `
+          <div class="leaderboard-item">
+            <div class="rank ${rankClass}">${rank}</div>
+            <div class="leaderboard-member">
+              <div class="leaderboard-avatar">
+                ${member.profilePicture ?
+                  `<img src="${member.profilePicture}" alt="${member.name}">` :
+                  member.name.split(' ').map(n => n[0]).join('').toUpperCase()
+                }
+              </div>
+              <div class="leaderboard-info">
+                <h4>${member.name}</h4>
+                <p>${member.title || 'Team Member'}</p>
+              </div>
+            </div>
+            <div class="leaderboard-score">${Math.round(member.metrics.focusScore || 0)}</div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function renderMembers(members) {
+      if (members.length === 0) {
+        return '<div class="empty-state"><div class="empty-state-icon">👥</div><p>No team members found</p></div>';
+      }
+
+      return members.map(member => `
+        <div class="member-card" onclick="viewMemberDetails('${member.id}')">
+          <div class="member-header">
+            <div class="member-avatar">
+              ${member.profilePicture ?
+                `<img src="${member.profilePicture}" alt="${member.name}">` :
+                member.name.split(' ').map(n => n[0]).join('').toUpperCase()
+              }
+            </div>
+            <div class="member-info">
+              <h4>${member.name}</h4>
+              <p>${member.title || 'Team Member'} • ${member.department || 'N/A'}</p>
+            </div>
+          </div>
+          <div class="member-stats">
+            <div class="member-stat">
+              <div class="member-stat-value">${Math.round(member.metrics.focusScore || 0)}</div>
+              <div class="member-stat-label">Focus</div>
+            </div>
+            <div class="member-stat">
+              <div class="member-stat-value">${(member.metrics.deepWorkHours || 0).toFixed(1)}h</div>
+              <div class="member-stat-label">Deep Work</div>
+            </div>
+            <div class="member-stat">
+              <div class="member-stat-value">${(member.metrics.activeHours || 0).toFixed(1)}h</div>
+              <div class="member-stat-label">Active</div>
+            </div>
+            <div class="member-stat">
+              <div class="member-stat-value">${calculateProductivityPercent(member.metrics)}%</div>
+              <div class="member-stat-label">Productive</div>
+            </div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function calculateTeamMetrics(members) {
+      const validMembers = members.filter(m => m.metrics && m.metrics.activeHours > 0);
+      const count = validMembers.length || 1;
+
+      const totalFocusScore = validMembers.reduce((sum, m) => sum + (m.metrics.focusScore || 0), 0);
+      const totalDeepWork = validMembers.reduce((sum, m) => sum + (m.metrics.deepWorkHours || 0), 0);
+      const totalActive = validMembers.reduce((sum, m) => sum + (m.metrics.activeHours || 0), 0);
+      const totalProductive = validMembers.reduce((sum, m) =>
+        sum + ((m.metrics.deepWorkHours || 0) + (m.metrics.shallowWorkHours || 0)), 0
+      );
+
+      return {
+        avgFocusScore: totalFocusScore / count,
+        totalDeepWork,
+        productivityRate: totalActive > 0 ? (totalProductive / totalActive) * 100 : 0
+      };
+    }
+
+    function calculateProductivityPercent(metrics) {
+      if (!metrics || metrics.activeHours === 0) return 0;
+      const productive = (metrics.deepWorkHours || 0) + (metrics.shallowWorkHours || 0);
+      return Math.round((productive / metrics.activeHours) * 100);
+    }
+
+    function getEmptyMetrics() {
+      return {
+        focusScore: 0,
+        deepWorkHours: 0,
+        shallowWorkHours: 0,
+        activeHours: 0,
+        totalHours: 0
+      };
+    }
+
+    function getUniqueDepartments() {
+      return [...new Set(allMembers.map(m => m.department).filter(Boolean))];
+    }
+
+    function filterMembers() {
+      const dept = document.getElementById('departmentFilter').value;
+      let filtered = allMembers;
+
+      if (dept !== 'all') {
+        filtered = allMembers.filter(m => m.department === dept);
+      }
+
+      document.getElementById('membersGrid').innerHTML = renderMembers(filtered);
+    }
+
+    function sortMembers() {
+      const sortBy = document.getElementById('sortBy').value;
+
+      const sorted = [...allMembers].sort((a, b) => {
+        switch(sortBy) {
+          case 'focusScore':
+            return (b.metrics.focusScore || 0) - (a.metrics.focusScore || 0);
+          case 'deepWork':
+            return (b.metrics.deepWorkHours || 0) - (a.metrics.deepWorkHours || 0);
+          case 'activeHours':
+            return (b.metrics.activeHours || 0) - (a.metrics.activeHours || 0);
+          case 'name':
+            return a.name.localeCompare(b.name);
+          default:
+            return 0;
+        }
+      });
+
+      document.getElementById('membersGrid').innerHTML = renderMembers(sorted);
+    }
+
+    function viewMemberDetails(memberId) {
+      // Redirect to member's individual dashboard
+      window.location.href = `/dashboard.html?userId=${memberId}`;
+    }
+
+    function getWeekStart(timestamp) {
+      const date = new Date(timestamp);
+      const day = date.getDay();
+      const diff = date.getDate() - day + (day === 0 ? -6 : 1);
+      return new Date(date.setDate(diff)).setHours(0, 0, 0, 0);
+    }
+
+    function getWeekEnd(timestamp) {
+      const start = getWeekStart(timestamp);
+      return new Date(start).setDate(new Date(start).getDate() + 6) + (24 * 60 * 60 * 1000 - 1);
+    }
+
+    function showError(message) {
+      const main = document.getElementById('mainContent');
+      main.innerHTML = `
+        <div class="error-message">
+          <strong>Error:</strong> ${message}
+        </div>
+        <button onclick="location.reload()" class="btn">Reload Page</button>
+      `;
+    }
+
+    async function signOut() {
+      try {
+        await fetch(`${API_URL}/auth/signout`, {
+          method: 'POST',
+          credentials: 'include'
+        });
+      } catch (error) {
+        console.error('Sign out error:', error);
+      } finally {
+        localStorage.removeItem('auth_token');
+        window.location.href = '/auth.html';
+      }
+    }
+  </script>
+</body>
+</html>
