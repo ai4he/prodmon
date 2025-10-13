@@ -41,6 +41,7 @@ class ProductivityMonkeyApp {
     // Initialize OAuth service
     const googleClientId = process.env.GOOGLE_CLIENT_ID || '';
     const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET || '';
+    const googleRedirectUri = process.env.GOOGLE_REDIRECT_URI || 'http://localhost';
     const jwtSecret = process.env.JWT_SECRET || 'electron-jwt-secret-change-in-production';
 
     if (googleClientId && googleClientSecret) {
@@ -48,11 +49,12 @@ class ProductivityMonkeyApp {
         {
           clientId: googleClientId,
           clientSecret: googleClientSecret,
-          redirectUri: 'http://localhost' // Will be overridden to use loopback
+          redirectUri: googleRedirectUri
         },
         jwtSecret
       );
       console.log('✓ OAuth service initialized for Electron');
+      console.log('  Redirect URI:', googleRedirectUri);
     } else {
       console.warn('⚠ OAuth not configured - set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET');
     }
@@ -521,6 +523,8 @@ class ProductivityMonkeyApp {
 
       try {
         const authUrl = this.oauthService.getAuthorizationUrl();
+        console.log('🔐 Starting OAuth flow...');
+        console.log('  Auth URL:', authUrl);
 
         // Create a new window for OAuth
         const oauthWindow = new BrowserWindow({
@@ -529,20 +533,154 @@ class ProductivityMonkeyApp {
           webPreferences: {
             nodeIntegration: false,
             contextIsolation: true
-          }
+          },
+          title: 'Sign in with Google'
         });
 
         oauthWindow.loadURL(authUrl);
 
         return new Promise((resolve, reject) => {
-          // Listen for redirect with code
+          let authCodeReceived = false;
+
+          // Listen for redirect with code (before navigation)
           oauthWindow.webContents.on('will-redirect', async (event, url) => {
-            if (url.startsWith('http://localhost')) {
+            console.log('🔄 OAuth will-redirect:', url);
+
+            if (url.startsWith('http://localhost') || url.startsWith('http://127.0.0.1')) {
               event.preventDefault();
+              authCodeReceived = true;
 
               const urlObj = new URL(url);
               const code = urlObj.searchParams.get('code');
               const error = urlObj.searchParams.get('error');
+
+              console.log('  Code received:', code ? 'Yes' : 'No');
+              console.log('  Error:', error || 'None');
+
+              oauthWindow.close();
+
+              if (error) {
+                reject(new Error(error));
+                return;
+              }
+
+              if (!code) {
+                reject(new Error('No authorization code received'));
+                return;
+              }
+
+              try {
+                // Exchange code for tokens
+                const tokens = await this.oauthService!.getTokensFromCode(code);
+
+                if (!tokens.id_token) {
+                  reject(new Error('No ID token received'));
+                  return;
+                }
+
+                // Get user info from ID token
+                const googleUser = await this.oauthService!.verifyIdToken(tokens.id_token);
+
+                // Check if user exists in database
+                const database = this.db.getDb();
+                let stmt = database.prepare('SELECT * FROM users WHERE email = ?');
+                stmt.bind([googleUser.email]);
+
+                let user: any = null;
+                if (stmt.step()) {
+                  user = stmt.getAsObject();
+                }
+                stmt.free();
+
+                let userId: string;
+
+                if (user) {
+                  // Update existing user
+                  userId = user.id as string;
+                  const updateStmt = database.prepare(
+                    `UPDATE users SET google_id = ?, profile_picture = ?, last_login = ?, name = ? WHERE id = ?`
+                  );
+                  updateStmt.run([googleUser.id, googleUser.picture, Date.now(), googleUser.name, userId]);
+                  updateStmt.free();
+                } else {
+                  // Create new user
+                  userId = uuidv4();
+                  const insertStmt = database.prepare(
+                    `INSERT INTO users (id, name, email, title, team, department, manager_id, google_id, profile_picture, last_login, created_at)
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+                  );
+                  insertStmt.run([
+                    userId,
+                    googleUser.name,
+                    googleUser.email,
+                    'User',
+                    'Default Team',
+                    'Default Department',
+                    null,
+                    googleUser.id,
+                    googleUser.picture,
+                    Date.now(),
+                    Date.now()
+                  ]);
+                  insertStmt.free();
+                }
+
+                this.db.save();
+
+                // Generate JWT
+                const token = this.oauthService!.generateJWT(userId, googleUser.email);
+
+                // Store auth token
+                this.store.set('authToken', token);
+
+                // Create config with server sync
+                const config: Config = {
+                  userId,
+                  userName: googleUser.name,
+                  userEmail: googleUser.email,
+                  title: user?.title || 'User',
+                  team: user?.team || 'Default Team',
+                  department: user?.department || 'Default Department',
+                  managerId: user?.manager_id || null,
+                  trackingInterval: 5000,
+                  idleThreshold: 5 * 60 * 1000,
+                  serverUrl: process.env.SERVER_URL,
+                  serverApiKey: process.env.SERVER_API_KEY
+                };
+
+                this.store.set('config', config);
+
+                // Start tracking
+                this.startAgent(config);
+
+                resolve({
+                  success: true,
+                  user: {
+                    id: userId,
+                    name: googleUser.name,
+                    email: googleUser.email,
+                    picture: googleUser.picture
+                  }
+                });
+              } catch (error: any) {
+                reject(error);
+              }
+            }
+          });
+
+          // Also listen for navigation (after redirect)
+          oauthWindow.webContents.on('did-navigate', async (event, url) => {
+            console.log('🔄 OAuth did-navigate:', url);
+
+            if ((url.startsWith('http://localhost') || url.startsWith('http://127.0.0.1')) && !authCodeReceived) {
+              authCodeReceived = true;
+
+              const urlObj = new URL(url);
+              const code = urlObj.searchParams.get('code');
+              const error = urlObj.searchParams.get('error');
+
+              console.log('  Code received (did-navigate):', code ? 'Yes' : 'No');
+              console.log('  Error:', error || 'None');
 
               oauthWindow.close();
 
@@ -656,10 +794,14 @@ class ProductivityMonkeyApp {
           });
 
           oauthWindow.on('closed', () => {
-            reject(new Error('OAuth window closed'));
+            if (!authCodeReceived) {
+              console.log('❌ OAuth window closed without receiving auth code');
+              reject(new Error('OAuth window closed before receiving authorization code. Please try again.'));
+            }
           });
         });
       } catch (error: any) {
+        console.error('OAuth error:', error);
         throw error;
       }
     });
