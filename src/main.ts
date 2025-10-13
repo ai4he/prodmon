@@ -581,30 +581,71 @@ class ProductivityMonkeyApp {
                 // Get user info from ID token
                 const googleUser = await this.oauthService!.verifyIdToken(tokens.id_token);
 
-                // Check if user exists in database
+                let userId: string;
+                let userFromServer: any = null;
+
+                // If server is configured, check if user exists on server first
+                if (process.env.SERVER_URL) {
+                  try {
+                    console.log('🔍 Checking for existing user on server...');
+                    const response = await fetch(`${process.env.SERVER_URL}/api/users`);
+                    if (response.ok) {
+                      const data = await response.json() as any;
+                      // Find user by email
+                      userFromServer = data.users?.find((u: any) => u.email === googleUser.email);
+                      if (userFromServer) {
+                        userId = userFromServer.id;
+                        console.log('✓ Found existing user on server:', userId);
+                      }
+                    }
+                  } catch (error) {
+                    console.log('⚠ Could not check server for user, will create locally');
+                  }
+                }
+
+                // Check local database
                 const database = this.db.getDb();
                 let stmt = database.prepare('SELECT * FROM users WHERE email = ?');
                 stmt.bind([googleUser.email]);
 
-                let user: any = null;
+                let localUser: any = null;
                 if (stmt.step()) {
-                  user = stmt.getAsObject();
+                  localUser = stmt.getAsObject();
                 }
                 stmt.free();
 
-                let userId: string;
+                // Use server user ID if found, otherwise use local or create new
+                if (!userId!) {
+                  userId = localUser?.id || uuidv4();
+                }
 
-                if (user) {
-                  // Update existing user
-                  userId = user.id as string;
-                  const updateStmt = database.prepare(
-                    `UPDATE users SET google_id = ?, profile_picture = ?, last_login = ?, name = ? WHERE id = ?`
+                // Update or create local user with the consistent user ID
+                if (localUser) {
+                  // Update existing local user (keep same ID or update to server ID)
+                  if (localUser.id !== userId) {
+                    // Need to update the user ID to match server
+                    database.run(`DELETE FROM users WHERE id = ?`, [localUser.id]);
+                  }
+                  const insertStmt = database.prepare(
+                    `INSERT OR REPLACE INTO users (id, name, email, title, team, department, manager_id, google_id, profile_picture, last_login, created_at)
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
                   );
-                  updateStmt.run([googleUser.id, googleUser.picture, Date.now(), googleUser.name, userId]);
-                  updateStmt.free();
+                  insertStmt.run([
+                    userId,
+                    googleUser.name,
+                    googleUser.email,
+                    userFromServer?.title || localUser.title || 'User',
+                    userFromServer?.team || localUser.team || 'Default Team',
+                    userFromServer?.department || localUser.department || 'Default Department',
+                    userFromServer?.managerId || localUser.manager_id || null,
+                    googleUser.id,
+                    googleUser.picture,
+                    Date.now(),
+                    localUser.created_at || Date.now()
+                  ]);
+                  insertStmt.free();
                 } else {
-                  // Create new user
-                  userId = uuidv4();
+                  // Create new local user with server's user ID (if available)
                   const insertStmt = database.prepare(
                     `INSERT INTO users (id, name, email, title, team, department, manager_id, google_id, profile_picture, last_login, created_at)
                      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
@@ -613,10 +654,10 @@ class ProductivityMonkeyApp {
                     userId,
                     googleUser.name,
                     googleUser.email,
-                    'User',
-                    'Default Team',
-                    'Default Department',
-                    null,
+                    userFromServer?.title || 'User',
+                    userFromServer?.team || 'Default Team',
+                    userFromServer?.department || 'Default Department',
+                    userFromServer?.managerId || null,
                     googleUser.id,
                     googleUser.picture,
                     Date.now(),
@@ -626,6 +667,7 @@ class ProductivityMonkeyApp {
                 }
 
                 this.db.save();
+                console.log('✓ Local user synced with ID:', userId);
 
                 // Generate JWT
                 const token = this.oauthService!.generateJWT(userId, googleUser.email);
@@ -638,10 +680,10 @@ class ProductivityMonkeyApp {
                   userId,
                   userName: googleUser.name,
                   userEmail: googleUser.email,
-                  title: user?.title || 'User',
-                  team: user?.team || 'Default Team',
-                  department: user?.department || 'Default Department',
-                  managerId: user?.manager_id || null,
+                  title: userFromServer?.title || localUser?.title || 'User',
+                  team: userFromServer?.team || localUser?.team || 'Default Team',
+                  department: userFromServer?.department || localUser?.department || 'Default Department',
+                  managerId: userFromServer?.managerId || localUser?.manager_id || null,
                   trackingInterval: 5000,
                   idleThreshold: 5 * 60 * 1000,
                   serverUrl: process.env.SERVER_URL,
@@ -706,30 +748,71 @@ class ProductivityMonkeyApp {
                 // Get user info from ID token
                 const googleUser = await this.oauthService!.verifyIdToken(tokens.id_token);
 
-                // Check if user exists in database
+                let userId: string;
+                let userFromServer: any = null;
+
+                // If server is configured, check if user exists on server first
+                if (process.env.SERVER_URL) {
+                  try {
+                    console.log('🔍 Checking for existing user on server...');
+                    const response = await fetch(`${process.env.SERVER_URL}/api/users`);
+                    if (response.ok) {
+                      const data = await response.json() as any;
+                      // Find user by email
+                      userFromServer = data.users?.find((u: any) => u.email === googleUser.email);
+                      if (userFromServer) {
+                        userId = userFromServer.id;
+                        console.log('✓ Found existing user on server:', userId);
+                      }
+                    }
+                  } catch (error) {
+                    console.log('⚠ Could not check server for user, will create locally');
+                  }
+                }
+
+                // Check local database
                 const database = this.db.getDb();
                 let stmt = database.prepare('SELECT * FROM users WHERE email = ?');
                 stmt.bind([googleUser.email]);
 
-                let user: any = null;
+                let localUser: any = null;
                 if (stmt.step()) {
-                  user = stmt.getAsObject();
+                  localUser = stmt.getAsObject();
                 }
                 stmt.free();
 
-                let userId: string;
+                // Use server user ID if found, otherwise use local or create new
+                if (!userId!) {
+                  userId = localUser?.id || uuidv4();
+                }
 
-                if (user) {
-                  // Update existing user
-                  userId = user.id as string;
-                  const updateStmt = database.prepare(
-                    `UPDATE users SET google_id = ?, profile_picture = ?, last_login = ?, name = ? WHERE id = ?`
+                // Update or create local user with the consistent user ID
+                if (localUser) {
+                  // Update existing local user (keep same ID or update to server ID)
+                  if (localUser.id !== userId) {
+                    // Need to update the user ID to match server
+                    database.run(`DELETE FROM users WHERE id = ?`, [localUser.id]);
+                  }
+                  const insertStmt = database.prepare(
+                    `INSERT OR REPLACE INTO users (id, name, email, title, team, department, manager_id, google_id, profile_picture, last_login, created_at)
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
                   );
-                  updateStmt.run([googleUser.id, googleUser.picture, Date.now(), googleUser.name, userId]);
-                  updateStmt.free();
+                  insertStmt.run([
+                    userId,
+                    googleUser.name,
+                    googleUser.email,
+                    userFromServer?.title || localUser.title || 'User',
+                    userFromServer?.team || localUser.team || 'Default Team',
+                    userFromServer?.department || localUser.department || 'Default Department',
+                    userFromServer?.managerId || localUser.manager_id || null,
+                    googleUser.id,
+                    googleUser.picture,
+                    Date.now(),
+                    localUser.created_at || Date.now()
+                  ]);
+                  insertStmt.free();
                 } else {
-                  // Create new user
-                  userId = uuidv4();
+                  // Create new local user with server's user ID (if available)
                   const insertStmt = database.prepare(
                     `INSERT INTO users (id, name, email, title, team, department, manager_id, google_id, profile_picture, last_login, created_at)
                      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
@@ -738,10 +821,10 @@ class ProductivityMonkeyApp {
                     userId,
                     googleUser.name,
                     googleUser.email,
-                    'User',
-                    'Default Team',
-                    'Default Department',
-                    null,
+                    userFromServer?.title || 'User',
+                    userFromServer?.team || 'Default Team',
+                    userFromServer?.department || 'Default Department',
+                    userFromServer?.managerId || null,
                     googleUser.id,
                     googleUser.picture,
                     Date.now(),
@@ -751,6 +834,7 @@ class ProductivityMonkeyApp {
                 }
 
                 this.db.save();
+                console.log('✓ Local user synced with ID:', userId);
 
                 // Generate JWT
                 const token = this.oauthService!.generateJWT(userId, googleUser.email);
@@ -763,10 +847,10 @@ class ProductivityMonkeyApp {
                   userId,
                   userName: googleUser.name,
                   userEmail: googleUser.email,
-                  title: user?.title || 'User',
-                  team: user?.team || 'Default Team',
-                  department: user?.department || 'Default Department',
-                  managerId: user?.manager_id || null,
+                  title: userFromServer?.title || localUser?.title || 'User',
+                  team: userFromServer?.team || localUser?.team || 'Default Team',
+                  department: userFromServer?.department || localUser?.department || 'Default Department',
+                  managerId: userFromServer?.managerId || localUser?.manager_id || null,
                   trackingInterval: 5000,
                   idleThreshold: 5 * 60 * 1000,
                   serverUrl: process.env.SERVER_URL,
