@@ -12,7 +12,7 @@
     "build:client:mac": "tsc && electron-builder --mac",
     "build:client:win": "tsc && electron-builder --win",
     "build:client:linux": "tsc && electron-builder --linux",
-    "build:server": "tsc",
+    "build:server": "tsc && mkdir -p dist/server/public && cp -r src/server/public/* dist/server/public/",
     "agent": "node dist/agent/index.js",
     "dashboard": "electron .",
     "test": "jest",
