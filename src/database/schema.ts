@@ -79,6 +79,9 @@ export class DatabaseManager {
       )
     `);
 
+    // Run migrations for existing tables
+    this.runMigrations();
+
     // Activity records table
     this.db.run(`
       CREATE TABLE IF NOT EXISTS activity_records (
@@ -144,6 +147,40 @@ export class DatabaseManager {
     this.db.run(`CREATE INDEX IF NOT EXISTS idx_users_team ON users(team)`);
 
     this.save();
+  }
+
+  private runMigrations() {
+    if (!this.db) return;
+
+    // Check if google_id column exists in users table
+    try {
+      const result = this.db.exec(`PRAGMA table_info(users)`);
+      if (result.length > 0) {
+        const columns = result[0].values.map(row => row[1]); // column name is at index 1
+
+        // Add google_id if it doesn't exist (can't add UNIQUE with ALTER TABLE in SQLite)
+        if (!columns.includes('google_id')) {
+          console.log('Adding google_id column to users table...');
+          this.db.run(`ALTER TABLE users ADD COLUMN google_id TEXT`);
+          // Create unique index separately
+          this.db.run(`CREATE UNIQUE INDEX IF NOT EXISTS idx_users_google_id ON users(google_id)`);
+        }
+
+        // Add profile_picture if it doesn't exist
+        if (!columns.includes('profile_picture')) {
+          console.log('Adding profile_picture column to users table...');
+          this.db.run(`ALTER TABLE users ADD COLUMN profile_picture TEXT`);
+        }
+
+        // Add last_login if it doesn't exist
+        if (!columns.includes('last_login')) {
+          console.log('Adding last_login column to users table...');
+          this.db.run(`ALTER TABLE users ADD COLUMN last_login INTEGER`);
+        }
+      }
+    } catch (error) {
+      console.error('Migration error:', error);
+    }
   }
 
   getDb(): Database {
