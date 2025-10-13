@@ -1,4 +1,5 @@
-import { app, BrowserWindow, ipcMain, Tray, Menu, nativeImage, dialog } from 'electron';
+import 'dotenv/config';
+import { app, BrowserWindow, ipcMain, Tray, Menu, nativeImage, dialog, shell } from 'electron';
 import { join } from 'path';
 import Store from 'electron-store';
 import { ProductivityAgent } from './agent';
@@ -10,9 +11,12 @@ import { IStorageClient, StorageClientFactory } from './storage/storage-client';
 import { Config, User } from './types';
 import { startOfWeek, endOfWeek } from 'date-fns';
 import { installNativeMessagingHost, installNativeMessagingHostForEdge } from './browser/install-native-host';
+import { GoogleOAuthService } from './auth/google-oauth';
+import { v4 as uuidv4 } from 'uuid';
 
 class ProductivityMonkeyApp {
   private mainWindow: BrowserWindow | null = null;
+  private authWindow: BrowserWindow | null = null;
   private tray: Tray | null = null;
   private store: Store;
   private db: DatabaseManager;
@@ -21,6 +25,7 @@ class ProductivityMonkeyApp {
   private metricsCalc: MetricsCalculator;
   private reportGen: ReportGenerator;
   private llmService: GeminiService | null = null;
+  private oauthService: GoogleOAuthService | null = null;
 
   constructor() {
     this.store = new Store();
@@ -33,6 +38,25 @@ class ProductivityMonkeyApp {
 
     this.reportGen = new ReportGenerator(this.db, this.llmService);
 
+    // Initialize OAuth service
+    const googleClientId = process.env.GOOGLE_CLIENT_ID || '';
+    const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET || '';
+    const jwtSecret = process.env.JWT_SECRET || 'electron-jwt-secret-change-in-production';
+
+    if (googleClientId && googleClientSecret) {
+      this.oauthService = new GoogleOAuthService(
+        {
+          clientId: googleClientId,
+          clientSecret: googleClientSecret,
+          redirectUri: 'http://localhost' // Will be overridden to use loopback
+        },
+        jwtSecret
+      );
+      console.log('✓ OAuth service initialized for Electron');
+    } else {
+      console.warn('⚠ OAuth not configured - set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET');
+    }
+
     this.setupIPC();
   }
 
@@ -44,21 +68,43 @@ class ProductivityMonkeyApp {
 
     this.createTray();
 
-    // Auto-configure if needed
-    let config = this.store.get('config') as Config | undefined;
-
-    if (!config) {
-      // Auto-generate default config
-      config = this.autoGenerateConfig();
-      this.store.set('config', config);
-    }
-
     // Auto-install native messaging manifests for all detected extensions
     await this.autoInstallNativeMessaging();
 
-    // Start agent automatically
-    this.startAgent(config);
-    this.showDashboard();
+    // Check if user is authenticated
+    const authToken = this.store.get('authToken') as string | undefined;
+    let config = this.store.get('config') as Config | undefined;
+
+    if (authToken && this.oauthService) {
+      // Verify token is still valid
+      const decoded = this.oauthService.verifyJWT(authToken);
+      if (decoded && config) {
+        // User is authenticated, start tracking
+        console.log('✓ User authenticated:', decoded.email);
+        this.startAgent(config);
+        this.showDashboard();
+        return;
+      } else {
+        // Token expired or invalid
+        console.log('⚠ Auth token expired or invalid');
+        this.store.delete('authToken');
+        this.store.delete('config');
+      }
+    }
+
+    // No valid authentication - show auth window
+    if (this.oauthService) {
+      this.showAuthWindow();
+    } else {
+      // OAuth not configured - fall back to auto-generation for development
+      console.log('⚠ OAuth not configured, using local user');
+      if (!config) {
+        config = this.autoGenerateConfig();
+        this.store.set('config', config);
+      }
+      this.startAgent(config);
+      this.showDashboard();
+    }
   }
 
   private autoGenerateConfig(): Config {
@@ -217,6 +263,29 @@ class ProductivityMonkeyApp {
     icon.setTemplateImage(true);
 
     return icon;
+  }
+
+  private showAuthWindow() {
+    if (this.authWindow) {
+      this.authWindow.focus();
+      return;
+    }
+
+    this.authWindow = new BrowserWindow({
+      width: 500,
+      height: 700,
+      webPreferences: {
+        nodeIntegration: true,
+        contextIsolation: false
+      },
+      title: 'Sign In - Productivity Monkey'
+    });
+
+    this.authWindow.loadFile(join(__dirname, '../ui/auth.html'));
+
+    this.authWindow.on('closed', () => {
+      this.authWindow = null;
+    });
   }
 
   private showSetupWindow() {
@@ -401,8 +470,193 @@ class ProductivityMonkeyApp {
   }
 
   private setupIPC() {
+    // ============================================================================
+    // AUTHENTICATION HANDLERS
+    // ============================================================================
+
+    // Get Google OAuth URL
+    ipcMain.handle('get-google-oauth-url', async () => {
+      if (!this.oauthService) {
+        throw new Error('OAuth service not initialized');
+      }
+      return this.oauthService.getAuthorizationUrl();
+    });
+
+    // Handle Google OAuth (opens browser window)
+    ipcMain.handle('sign-in-with-google', async () => {
+      if (!this.oauthService) {
+        throw new Error('OAuth service not initialized');
+      }
+
+      try {
+        const authUrl = this.oauthService.getAuthorizationUrl();
+
+        // Create a new window for OAuth
+        const oauthWindow = new BrowserWindow({
+          width: 500,
+          height: 700,
+          webPreferences: {
+            nodeIntegration: false,
+            contextIsolation: true
+          }
+        });
+
+        oauthWindow.loadURL(authUrl);
+
+        return new Promise((resolve, reject) => {
+          // Listen for redirect with code
+          oauthWindow.webContents.on('will-redirect', async (event, url) => {
+            if (url.startsWith('http://localhost')) {
+              event.preventDefault();
+
+              const urlObj = new URL(url);
+              const code = urlObj.searchParams.get('code');
+              const error = urlObj.searchParams.get('error');
+
+              oauthWindow.close();
+
+              if (error) {
+                reject(new Error(error));
+                return;
+              }
+
+              if (!code) {
+                reject(new Error('No authorization code received'));
+                return;
+              }
+
+              try {
+                // Exchange code for tokens
+                const tokens = await this.oauthService!.getTokensFromCode(code);
+
+                if (!tokens.id_token) {
+                  reject(new Error('No ID token received'));
+                  return;
+                }
+
+                // Get user info from ID token
+                const googleUser = await this.oauthService!.verifyIdToken(tokens.id_token);
+
+                // Check if user exists in database
+                const database = this.db.getDb();
+                let stmt = database.prepare('SELECT * FROM users WHERE email = ?');
+                stmt.bind([googleUser.email]);
+
+                let user: any = null;
+                if (stmt.step()) {
+                  user = stmt.getAsObject();
+                }
+                stmt.free();
+
+                let userId: string;
+
+                if (user) {
+                  // Update existing user
+                  userId = user.id as string;
+                  const updateStmt = database.prepare(
+                    `UPDATE users SET google_id = ?, profile_picture = ?, last_login = ?, name = ? WHERE id = ?`
+                  );
+                  updateStmt.run([googleUser.id, googleUser.picture, Date.now(), googleUser.name, userId]);
+                  updateStmt.free();
+                } else {
+                  // Create new user
+                  userId = uuidv4();
+                  const insertStmt = database.prepare(
+                    `INSERT INTO users (id, name, email, title, team, department, manager_id, google_id, profile_picture, last_login, created_at)
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+                  );
+                  insertStmt.run([
+                    userId,
+                    googleUser.name,
+                    googleUser.email,
+                    'User',
+                    'Default Team',
+                    'Default Department',
+                    null,
+                    googleUser.id,
+                    googleUser.picture,
+                    Date.now(),
+                    Date.now()
+                  ]);
+                  insertStmt.free();
+                }
+
+                this.db.save();
+
+                // Generate JWT
+                const token = this.oauthService!.generateJWT(userId, googleUser.email);
+
+                // Store auth token
+                this.store.set('authToken', token);
+
+                // Create config
+                const config: Config = {
+                  userId,
+                  userName: googleUser.name,
+                  userEmail: googleUser.email,
+                  title: user?.title || 'User',
+                  team: user?.team || 'Default Team',
+                  department: user?.department || 'Default Department',
+                  managerId: user?.manager_id || null,
+                  trackingInterval: 5000,
+                  idleThreshold: 5 * 60 * 1000
+                };
+
+                this.store.set('config', config);
+
+                // Start tracking
+                this.startAgent(config);
+
+                resolve({
+                  success: true,
+                  user: {
+                    id: userId,
+                    name: googleUser.name,
+                    email: googleUser.email,
+                    picture: googleUser.picture
+                  }
+                });
+              } catch (error: any) {
+                reject(error);
+              }
+            }
+          });
+
+          oauthWindow.on('closed', () => {
+            reject(new Error('OAuth window closed'));
+          });
+        });
+      } catch (error: any) {
+        throw error;
+      }
+    });
+
+    // Sign out
+    ipcMain.handle('sign-out', async () => {
+      // Stop tracking
+      if (this.agent) {
+        this.agent.stop();
+        this.agent = null;
+      }
+
+      // Clear stored data
+      this.store.delete('authToken');
+      this.store.delete('config');
+
+      // Close main window
+      if (this.mainWindow) {
+        this.mainWindow.close();
+        this.mainWindow = null;
+      }
+
+      // Show auth window
+      this.showAuthWindow();
+
+      return { success: true };
+    });
+
     // Setup user configuration
-    ipcMain.handle('setup-user', async (event, userData: {
+    ipcMain.handle('setup-user', async (_event, userData: {
       name: string;
       email: string;
       title: string;
@@ -478,7 +732,7 @@ class ProductivityMonkeyApp {
     });
 
     // Get weekly report (now async for LLM integration)
-    ipcMain.handle('get-weekly-report', async (event, userId?: string) => {
+    ipcMain.handle('get-weekly-report', async (_event, userId?: string) => {
       const config = this.store.get('config') as Config;
       const targetUserId = userId || config.userId;
 
@@ -547,7 +801,7 @@ class ProductivityMonkeyApp {
     });
 
     // Export report
-    ipcMain.handle('export-report', async (event, userId: string, format: 'text' | 'json') => {
+    ipcMain.handle('export-report', async (_event, userId: string, format: 'text' | 'json') => {
       const config = this.store.get('config') as Config;
       const effectiveUserId = userId || config?.userId;
 

@@ -301,6 +301,10 @@
   </div>
 
   <script>
+    // Check if running in Electron
+    const isElectron = typeof require !== 'undefined';
+    const { ipcRenderer } = isElectron ? require('electron') : { ipcRenderer: null };
+
     let isSignUp = false;
     let isEmailFormVisible = false;
     const API_URL = 'http://localhost:3000';
@@ -351,18 +355,35 @@
         btn.disabled = true;
         btnText.innerHTML = '<span class="loading"></span>';
 
-        // Get Google OAuth URL from backend
-        const response = await fetch(`${API_URL}/auth/google/url`);
-        const data = await response.json();
+        if (isElectron && ipcRenderer) {
+          // Electron: Use IPC to trigger OAuth
+          const result = await ipcRenderer.invoke('sign-in-with-google');
 
-        if (data.url) {
-          // Open Google OAuth in new window or redirect
-          window.location.href = data.url;
+          if (result.success) {
+            showSuccess('Successfully signed in with Google!');
+
+            // Close auth window and wait for main window to open
+            setTimeout(() => {
+              window.close();
+            }, 1000);
+          } else {
+            throw new Error('Failed to sign in');
+          }
         } else {
-          throw new Error('Failed to get OAuth URL');
+          // Web: Use fetch to backend
+          const response = await fetch(`${API_URL}/auth/google/url`);
+          const data = await response.json();
+
+          if (data.url) {
+            // Open Google OAuth in new window or redirect
+            window.location.href = data.url;
+          } else {
+            throw new Error('Failed to get OAuth URL');
+          }
         }
       } catch (error) {
-        showError('Failed to sign in with Google. Please try again.');
+        console.error('Sign-in error:', error);
+        showError(error.message || 'Failed to sign in with Google. Please try again.');
         btn.disabled = false;
         btnText.textContent = isSignUp ? 'Sign up with Google' : 'Continue with Google';
       }
@@ -432,29 +453,35 @@
 
     // Check if user is already authenticated
     window.addEventListener('load', () => {
-      const token = localStorage.getItem('auth_token');
-      if (token) {
-        // Verify token is still valid
-        fetch(`${API_URL}/auth/verify`, {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        }).then(response => {
-          if (response.ok) {
-            window.location.href = '/dashboard.html';
-          }
-        });
-      }
+      if (isElectron) {
+        // Electron: Auth check is handled in main process
+        console.log('Electron auth window loaded');
+      } else {
+        // Web: Check for existing token
+        const token = localStorage.getItem('auth_token');
+        if (token) {
+          // Verify token is still valid
+          fetch(`${API_URL}/auth/verify`, {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          }).then(response => {
+            if (response.ok) {
+              window.location.href = '/dashboard.html';
+            }
+          });
+        }
 
-      // Check if we have a success message from OAuth callback
-      const urlParams = new URLSearchParams(window.location.search);
-      if (urlParams.get('success') === 'true') {
-        showSuccess('Successfully signed in with Google!');
-        setTimeout(() => {
-          window.location.href = '/dashboard.html';
-        }, 1000);
-      } else if (urlParams.get('error')) {
-        showError(decodeURIComponent(urlParams.get('error')));
+        // Check if we have a success message from OAuth callback
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('success') === 'true') {
+          showSuccess('Successfully signed in with Google!');
+          setTimeout(() => {
+            window.location.href = '/dashboard.html';
+          }, 1000);
+        } else if (urlParams.get('error')) {
+          showError(decodeURIComponent(urlParams.get('error')));
+        }
       }
     });
   </script>
