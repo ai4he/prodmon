@@ -23,7 +23,8 @@
     "server:pm2:restart": "pm2 restart prodmon-server",
     "server:pm2:delete": "pm2 delete prodmon-server",
     "server:pm2:logs": "pm2 logs prodmon-server",
-    "server:pm2:status": "pm2 status prodmon-server"
+    "server:pm2:status": "pm2 status prodmon-server",
+    "postinstall": "electron-rebuild"
   },
   "keywords": [
     "productivity",
@@ -34,19 +35,20 @@
   "license": "MIT",
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
-    "active-win": "^9.0.0",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "date-fns": "^3.0.6",
     "electron-store": "^8.1.0",
     "express": "^4.18.2",
     "express-session": "^1.18.2",
+    "get-windows": "^9.2.3",
     "google-auth-library": "^10.4.0",
     "jsonwebtoken": "^9.0.2",
     "sql.js": "^1.10.3",
     "uuid": "^9.0.1"
   },
   "devDependencies": {
+    "@electron/rebuild": "^4.0.1",
     "@types/better-sqlite3": "^7.6.8",
     "@types/cookie-parser": "^1.4.9",
     "@types/cors": "^2.8.17",
