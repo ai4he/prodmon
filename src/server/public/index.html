@@ -72,6 +72,42 @@
             color: var(--primary-color);
         }
 
+        .nav-actions {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .btn-nav {
+            padding: 0.5rem 1.5rem;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.3s;
+            font-size: 0.875rem;
+        }
+
+        .btn-sign-in {
+            color: var(--primary-color);
+            background: transparent;
+            border: 1px solid var(--primary-color);
+        }
+
+        .btn-sign-in:hover {
+            background: var(--primary-color);
+            color: var(--white);
+        }
+
+        .btn-get-started {
+            background: var(--primary-color);
+            color: var(--white);
+        }
+
+        .btn-get-started:hover {
+            background: var(--primary-dark);
+            transform: translateY(-1px);
+        }
+
         /* Hero Section */
         .hero {
             background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
@@ -394,6 +430,17 @@
                 display: none;
             }
 
+            .nav-actions {
+                flex-direction: column;
+                width: 100%;
+                gap: 0.5rem;
+            }
+
+            .btn-nav {
+                width: 100%;
+                text-align: center;
+            }
+
             .features-grid,
             .steps {
                 grid-template-columns: 1fr;
@@ -410,13 +457,17 @@
     <!-- Header -->
     <header>
         <nav>
-            <a href="#" class="logo">🐵 Productivity Monkey</a>
+            <a href="/" class="logo">🐵 Productivity Monkey</a>
             <ul class="nav-links">
                 <li><a href="#features">Features</a></li>
                 <li><a href="#how-it-works">How It Works</a></li>
                 <li><a href="#privacy">Privacy</a></li>
                 <li><a href="#download">Download</a></li>
             </ul>
+            <div class="nav-actions">
+                <a href="/auth.html" class="btn-nav btn-sign-in">Sign In</a>
+                <a href="/auth.html" class="btn-nav btn-get-started">Get Started</a>
+            </div>
         </nav>
     </header>
 
@@ -426,8 +477,9 @@
             <h1>Unlock Your Team's Productivity Potential</h1>
             <p>Comprehensive productivity monitoring and analytics for desktop and browser activity. Track, analyze, and optimize team performance with actionable insights.</p>
             <div class="cta-buttons">
-                <a href="#download" class="btn btn-primary">Download Now</a>
-                <a href="#how-it-works" class="btn btn-secondary">Learn More</a>
+                <a href="/auth.html" class="btn btn-primary">Get Started Free</a>
+                <a href="/dashboard" class="btn btn-secondary">View Dashboard</a>
+                <a href="#download" class="btn btn-secondary">Download App</a>
             </div>
         </div>
     </section>
