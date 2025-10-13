@@ -110,12 +110,17 @@ async function initializeServices() {
   }
 }
 
-// Serve static files (web dashboard)
+// Serve static files (landing page, auth pages, etc.)
 app.use(express.static(join(__dirname, 'public')));
 
-// Root route - serve dashboard
-app.get('/', (req: Request, res: Response) => {
+// Dashboard route (authenticated)
+app.get('/dashboard', (req: Request, res: Response) => {
   res.sendFile(join(__dirname, 'public', 'dashboard.html'));
+});
+
+// Admin dashboard route
+app.get('/admin', (req: Request, res: Response) => {
+  res.sendFile(join(__dirname, 'public', 'admin.html'));
 });
 
 // Health check endpoint
@@ -232,8 +237,8 @@ app.get('/auth/google/callback', async (req: Request, res: Response) => {
       maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
     });
 
-    // Redirect to dashboard
-    res.redirect('/auth.html?success=true');
+    // Redirect to dashboard after successful auth
+    res.redirect('/dashboard');
   } catch (error: any) {
     console.error('OAuth callback error:', error);
     res.redirect(`/auth.html?error=${encodeURIComponent(error.message)}`);
