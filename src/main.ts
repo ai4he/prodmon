@@ -589,7 +589,7 @@ class ProductivityMonkeyApp {
                 // Store auth token
                 this.store.set('authToken', token);
 
-                // Create config
+                // Create config with server sync
                 const config: Config = {
                   userId,
                   userName: googleUser.name,
@@ -599,7 +599,9 @@ class ProductivityMonkeyApp {
                   department: user?.department || 'Default Department',
                   managerId: user?.manager_id || null,
                   trackingInterval: 5000,
-                  idleThreshold: 5 * 60 * 1000
+                  idleThreshold: 5 * 60 * 1000,
+                  serverUrl: process.env.SERVER_URL,
+                  serverApiKey: process.env.SERVER_API_KEY
                 };
 
                 this.store.set('config', config);
