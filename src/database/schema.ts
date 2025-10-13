@@ -68,10 +68,13 @@ export class DatabaseManager {
         id TEXT PRIMARY KEY,
         name TEXT NOT NULL,
         email TEXT UNIQUE NOT NULL,
-        title TEXT NOT NULL,
-        team TEXT NOT NULL,
-        department TEXT NOT NULL,
+        title TEXT,
+        team TEXT,
+        department TEXT,
         manager_id TEXT,
+        google_id TEXT UNIQUE,
+        profile_picture TEXT,
+        last_login INTEGER,
         created_at INTEGER NOT NULL
       )
     `);

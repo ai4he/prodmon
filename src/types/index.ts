@@ -6,6 +6,9 @@ export interface User {
   team: string;
   managerId: string | null;
   department: string;
+  googleId?: string;
+  profilePicture?: string;
+  lastLogin?: number;
   createdAt: number;
 }
 

@@ -1,10 +1,14 @@
 import express, { Request, Response } from 'express';
 import cors from 'cors';
+import cookieParser from 'cookie-parser';
+import session from 'express-session';
 import { join } from 'path';
 import { DatabaseManager } from '../database/schema';
 import { MetricsCalculator } from '../analytics/metrics';
 import { ReportGenerator } from '../analytics/reports';
 import { GeminiService } from '../llm/gemini-service';
+import { GoogleOAuthService } from '../auth/google-oauth';
+import { authMiddleware, optionalAuthMiddleware } from '../auth/middleware';
 import { ActivityRecord, User, Config } from '../types';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -13,9 +17,29 @@ const PORT = Number(process.env.PORT) || 3000;
 const DB_PATH = process.env.DB_PATH || './prodmon-server.db';
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
+// OAuth Configuration
+const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || '';
+const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET || '';
+const GOOGLE_REDIRECT_URI = process.env.GOOGLE_REDIRECT_URI || `http://localhost:${PORT}/auth/google/callback`;
+const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
+
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: true,
+  credentials: true
+}));
 app.use(express.json({ limit: '10mb' }));
+app.use(cookieParser());
+app.use(session({
+  secret: JWT_SECRET,
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    secure: process.env.NODE_ENV === 'production',
+    httpOnly: true,
+    maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+  }
+}));
 
 // Request logging middleware
 app.use((req: Request, res: Response, next: Function) => {
@@ -47,6 +71,7 @@ let db: DatabaseManager;
 let metricsCalc: MetricsCalculator;
 let reportGen: ReportGenerator;
 let llmService: GeminiService | null = null;
+let oauthService: GoogleOAuthService | null = null;
 
 async function initializeServices() {
   try {
@@ -59,6 +84,21 @@ async function initializeServices() {
     if (GEMINI_API_KEY) {
       llmService = new GeminiService(GEMINI_API_KEY);
       console.log('✓ LLM service initialized');
+    }
+
+    // Initialize OAuth service
+    if (GOOGLE_CLIENT_ID && GOOGLE_CLIENT_SECRET) {
+      oauthService = new GoogleOAuthService(
+        {
+          clientId: GOOGLE_CLIENT_ID,
+          clientSecret: GOOGLE_CLIENT_SECRET,
+          redirectUri: GOOGLE_REDIRECT_URI
+        },
+        JWT_SECRET
+      );
+      console.log('✓ OAuth service initialized');
+    } else {
+      console.warn('⚠ OAuth not configured - authentication will be disabled');
     }
 
     reportGen = new ReportGenerator(db, llmService || undefined);
@@ -82,8 +122,265 @@ app.get('/health', (req: Request, res: Response) => {
   res.json({
     status: 'ok',
     timestamp: Date.now(),
-    llm: llmService ? 'enabled' : 'disabled'
+    llm: llmService ? 'enabled' : 'disabled',
+    auth: oauthService ? 'enabled' : 'disabled'
   });
+});
+
+// ============================================================================
+// AUTHENTICATION ENDPOINTS
+// ============================================================================
+
+// Get Google OAuth URL
+app.get('/auth/google/url', (req: Request, res: Response) => {
+  if (!oauthService) {
+    return res.status(503).json({ error: 'OAuth not configured' });
+  }
+
+  try {
+    const url = oauthService.getAuthorizationUrl();
+    res.json({ url });
+  } catch (error: any) {
+    console.error('Error generating OAuth URL:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Google OAuth callback
+app.get('/auth/google/callback', async (req: Request, res: Response) => {
+  if (!oauthService) {
+    return res.redirect('/auth.html?error=OAuth%20not%20configured');
+  }
+
+  const { code, error } = req.query;
+
+  if (error) {
+    return res.redirect(`/auth.html?error=${encodeURIComponent(error as string)}`);
+  }
+
+  if (!code) {
+    return res.redirect('/auth.html?error=No%20authorization%20code');
+  }
+
+  try {
+    // Exchange code for tokens
+    const tokens = await oauthService.getTokensFromCode(code as string);
+
+    if (!tokens.id_token) {
+      throw new Error('No ID token received');
+    }
+
+    // Verify ID token and get user info
+    const googleUser = await oauthService.verifyIdToken(tokens.id_token);
+
+    // Check if user exists
+    const database = db.getDb();
+    let stmt = database.prepare('SELECT * FROM users WHERE email = ?');
+    stmt.bind([googleUser.email]);
+
+    let user: any = null;
+    if (stmt.step()) {
+      user = stmt.getAsObject();
+    }
+    stmt.free();
+
+    let userId: string;
+
+    if (user) {
+      // Update existing user
+      userId = user.id as string;
+      const updateStmt = database.prepare(
+        `UPDATE users
+         SET google_id = ?, profile_picture = ?, last_login = ?, name = ?
+         WHERE id = ?`
+      );
+      updateStmt.run([googleUser.id, googleUser.picture, Date.now(), googleUser.name, userId]);
+      updateStmt.free();
+    } else {
+      // Create new user
+      userId = uuidv4();
+      const insertStmt = database.prepare(
+        `INSERT INTO users (id, name, email, title, team, department, manager_id, google_id, profile_picture, last_login, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      );
+      insertStmt.run([
+        userId,
+        googleUser.name,
+        googleUser.email,
+        'User',
+        'Default Team',
+        'Default Department',
+        null,
+        googleUser.id,
+        googleUser.picture,
+        Date.now(),
+        Date.now()
+      ]);
+      insertStmt.free();
+    }
+
+    db.save();
+
+    // Generate JWT
+    const token = oauthService.generateJWT(userId, googleUser.email);
+
+    // Set cookie
+    res.cookie('auth_token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+    });
+
+    // Redirect to dashboard
+    res.redirect('/auth.html?success=true');
+  } catch (error: any) {
+    console.error('OAuth callback error:', error);
+    res.redirect(`/auth.html?error=${encodeURIComponent(error.message)}`);
+  }
+});
+
+// Exchange authorization code for token (alternative endpoint)
+app.post('/auth/google/exchange', async (req: Request, res: Response) => {
+  if (!oauthService) {
+    return res.status(503).json({ error: 'OAuth not configured' });
+  }
+
+  const { code } = req.body;
+
+  if (!code) {
+    return res.status(400).json({ error: 'Authorization code required' });
+  }
+
+  try {
+    const tokens = await oauthService.getTokensFromCode(code);
+
+    if (!tokens.id_token) {
+      throw new Error('No ID token received');
+    }
+
+    const googleUser = await oauthService.verifyIdToken(tokens.id_token);
+
+    // Same logic as callback above
+    const database = db.getDb();
+    let stmt = database.prepare('SELECT * FROM users WHERE email = ?');
+    stmt.bind([googleUser.email]);
+
+    let user: any = null;
+    if (stmt.step()) {
+      user = stmt.getAsObject();
+    }
+    stmt.free();
+
+    let userId: string;
+
+    if (user) {
+      userId = user.id as string;
+      const updateStmt = database.prepare(
+        `UPDATE users SET google_id = ?, profile_picture = ?, last_login = ?, name = ? WHERE id = ?`
+      );
+      updateStmt.run([googleUser.id, googleUser.picture, Date.now(), googleUser.name, userId]);
+      updateStmt.free();
+    } else {
+      userId = uuidv4();
+      const insertStmt = database.prepare(
+        `INSERT INTO users (id, name, email, title, team, department, manager_id, google_id, profile_picture, last_login, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      );
+      insertStmt.run([
+        userId,
+        googleUser.name,
+        googleUser.email,
+        'User',
+        'Default Team',
+        'Default Department',
+        null,
+        googleUser.id,
+        googleUser.picture,
+        Date.now(),
+        Date.now()
+      ]);
+      insertStmt.free();
+    }
+
+    db.save();
+
+    const token = oauthService.generateJWT(userId, googleUser.email);
+
+    res.json({
+      token,
+      user: {
+        id: userId,
+        name: googleUser.name,
+        email: googleUser.email,
+        picture: googleUser.picture
+      }
+    });
+  } catch (error: any) {
+    console.error('Token exchange error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Verify JWT token
+app.get('/auth/verify', (req: Request, res: Response) => {
+  if (!oauthService) {
+    return res.status(503).json({ error: 'OAuth not configured' });
+  }
+
+  const authHeader = req.headers.authorization;
+  const token = authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : req.cookies.auth_token;
+
+  if (!token) {
+    return res.status(401).json({ error: 'No token provided' });
+  }
+
+  const decoded = oauthService.verifyJWT(token);
+  if (!decoded) {
+    return res.status(401).json({ error: 'Invalid token' });
+  }
+
+  res.json({ valid: true, user: decoded });
+});
+
+// Sign out
+app.post('/auth/signout', (req: Request, res: Response) => {
+  res.clearCookie('auth_token');
+  res.json({ success: true });
+});
+
+// Get current user
+app.get('/auth/me', authMiddleware(oauthService!), (req: Request, res: Response) => {
+  try {
+    const userId = req.user!.userId;
+    const database = db.getDb();
+
+    const stmt = database.prepare('SELECT * FROM users WHERE id = ?');
+    stmt.bind([userId]);
+
+    let user: any = null;
+    if (stmt.step()) {
+      user = stmt.getAsObject();
+    }
+    stmt.free();
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    res.json({
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      title: user.title,
+      team: user.team,
+      department: user.department,
+      profilePicture: user.profile_picture,
+      createdAt: user.created_at
+    });
+  } catch (error: any) {
+    console.error('Error fetching current user:', error);
+    res.status(500).json({ error: error.message });
+  }
 });
 
 // ============================================================================
@@ -536,10 +833,19 @@ initializeServices().then(() => {
     console.log(`  Host: 0.0.0.0 (all interfaces)`);
     console.log(`  Database: ${DB_PATH}`);
     console.log(`  LLM: ${llmService ? 'Enabled' : 'Disabled'}`);
-    console.log(`  Auth: Disabled (open access for debugging)`);
+    console.log(`  OAuth: ${oauthService ? 'Enabled (Google)' : 'Disabled'}`);
     console.log(`  Request Logging: Enabled`);
     console.log('═══════════════════════════════════════════════════');
-    console.log('  Endpoints:');
+    console.log('  Authentication Endpoints:');
+    console.log('    GET  /auth.html                     - Sign in page');
+    console.log('    GET  /auth/google/url               - Get OAuth URL');
+    console.log('    GET  /auth/google/callback          - OAuth callback');
+    console.log('    POST /auth/google/exchange          - Exchange code');
+    console.log('    GET  /auth/verify                   - Verify token');
+    console.log('    POST /auth/signout                  - Sign out');
+    console.log('    GET  /auth/me                       - Current user');
+    console.log('');
+    console.log('  API Endpoints:');
     console.log('    GET  /health');
     console.log('    POST /api/users');
     console.log('    GET  /api/users');
@@ -554,6 +860,12 @@ initializeServices().then(() => {
     console.log('    GET  /api/reports/team/:teamName');
     console.log('    GET  /api/llm/status');
     console.log('═══════════════════════════════════════════════════');
+    if (!oauthService) {
+      console.log('⚠  WARNING: OAuth not configured!');
+      console.log('   Set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET');
+      console.log('   See docs/AUTH_SETUP.md for instructions');
+      console.log('═══════════════════════════════════════════════════');
+    }
   });
 });
 
