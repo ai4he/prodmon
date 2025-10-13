@@ -26,7 +26,7 @@ export class ActivityTracker {
     try {
       // Dynamic import for cross-platform compatibility
       // get-windows (formerly active-win) is an ES module, but we compile to CommonJS
-      const { activeWindow } = await import('get-windows') as any;
+      const { activeWindow } = await import('get-windows');
 
       // Request with both Screen Recording and Accessibility permissions for maximum detail
       // Screen Recording: enables window title capture
