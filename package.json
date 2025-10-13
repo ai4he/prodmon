@@ -17,7 +17,13 @@
     "dashboard": "electron .",
     "test": "jest",
     "server": "node dist/server/server.js",
-    "server:dev": "concurrently \"tsc -w\" \"nodemon dist/server/server.js\""
+    "server:dev": "concurrently \"tsc -w\" \"nodemon dist/server/server.js\"",
+    "server:pm2:start": "pm2 start dist/server/server.js --name prodmon-server",
+    "server:pm2:stop": "pm2 stop prodmon-server",
+    "server:pm2:restart": "pm2 restart prodmon-server",
+    "server:pm2:delete": "pm2 delete prodmon-server",
+    "server:pm2:logs": "pm2 logs prodmon-server",
+    "server:pm2:status": "pm2 status prodmon-server"
   },
   "keywords": [
     "productivity",
