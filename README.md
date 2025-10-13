@@ -45,6 +45,41 @@ npm run build
 npm start
 ```
 
+## Quick Start
+
+See [QUICK_START.md](QUICK_START.md) for zero-configuration setup instructions.
+
+For building from source, see [BUILD.md](BUILD.md).
+
+## Documentation
+
+📚 **Comprehensive documentation is available in the [docs/](docs/) folder:**
+
+### Setup & Configuration
+- [Quick Start - Server Mode](docs/QUICK_START_SERVER.md) - Server deployment quickstart
+- [Client-Server Setup](docs/CLIENT_SERVER_SETUP.md) - Connect clients to remote server
+- [Server Startup Checklist](docs/SERVER_STARTUP_CHECKLIST.md) - Production server setup
+- [Configuration Guide](docs/CONFIGURATION_GUIDE.md) - Complete configuration reference
+- [Server Deployment](docs/SERVER_DEPLOYMENT.md) - Production deployment guide
+
+### Features & Enhancements
+- [LLM Intelligence](docs/LLM_INTELLIGENCE.md) - AI-powered work categorization
+- [LLM Quick Start](docs/LLM_QUICK_START.md) - Enable Gemini AI features
+- [Hybrid Storage Implementation](docs/HYBRID_STORAGE_IMPLEMENTATION.md) - Local + remote sync
+- [Browser Activity Display](docs/BROWSER_ACTIVITY_DISPLAY.md) - Browser tracking features
+
+### Platform-Specific
+- [macOS Permissions](docs/MACOS_PERMISSIONS.md) - Required macOS permissions
+- [Accessibility Enhancement](docs/ACCESSIBILITY_ENHANCEMENT.md) - Enhanced tracking on macOS
+- [Enable Accessibility](docs/ENABLE_ACCESSIBILITY.md) - Grant accessibility permissions
+
+### Technical Details
+- [Backend Implementation Summary](docs/BACKEND_IMPLEMENTATION_SUMMARY.md) - Server architecture
+- [Extension Memory Leak Fix](docs/EXTENSION_MEMORY_LEAK_FIX.md) - Browser extension v1.1.0 fixes
+- [Gemini Optimization](docs/GEMINI_OPTIMIZATION.md) - LLM API optimization
+- [Menubar Icon Fix](docs/MENUBAR_ICON_FIX.md) - macOS tray icon fixes
+- [Server README](docs/README_SERVER.md) - Server-specific documentation
+
 ## Usage
 
 ### First Launch
