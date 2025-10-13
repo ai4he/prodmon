@@ -16,8 +16,13 @@ declare global {
 /**
  * Middleware to verify JWT token from Authorization header or cookies
  */
-export function authMiddleware(oauthService: GoogleOAuthService) {
+export function authMiddleware(oauthService: GoogleOAuthService | null) {
   return (req: Request, res: Response, next: NextFunction) => {
+    // Check if OAuth service is available
+    if (!oauthService) {
+      return res.status(503).json({ error: 'Authentication service not available' });
+    }
+
     // Check Authorization header first
     const authHeader = req.headers.authorization;
     let token: string | undefined;

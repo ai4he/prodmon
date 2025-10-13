@@ -1,5 +1,5 @@
 import 'dotenv/config';
-import express, { Request, Response } from 'express';
+import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import session from 'express-session';
@@ -43,7 +43,7 @@ app.use(session({
 }));
 
 // Request logging middleware
-app.use((req: Request, res: Response, next: Function) => {
+app.use((req: Request, res: Response, next: NextFunction) => {
   const timestamp = new Date().toISOString();
   const method = req.method;
   const url = req.url;
@@ -355,7 +355,11 @@ app.post('/auth/signout', (req: Request, res: Response) => {
 });
 
 // Get current user
-app.get('/auth/me', authMiddleware(oauthService!), (req: Request, res: Response) => {
+app.get('/auth/me', (req: Request, res: Response, next: NextFunction) => {
+  // Create middleware with current oauthService reference
+  const middleware = authMiddleware(oauthService);
+  middleware(req, res, next);
+}, (req: Request, res: Response) => {
   try {
     const userId = req.user!.userId;
     const database = db.getDb();
