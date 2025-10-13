@@ -88,8 +88,9 @@ Complete documentation for setup, configuration, deployment, and troubleshooting
 
 ---
 
-## 💻 Windows-Specific
+## 💻 Platform-Specific Guides
 
+### Windows
 - **[Windows Setup](WINDOWS_SETUP.md)** - Complete Windows 10/11 setup guide
   - Prerequisites and installation
   - Native module building
@@ -98,9 +99,18 @@ Complete documentation for setup, configuration, deployment, and troubleshooting
   - Building Windows installer
   - Troubleshooting Windows-specific issues
 
----
+### Linux
+- **[Linux Setup](LINUX_SETUP.md)** - Complete Linux setup guide
+  - Prerequisites for Ubuntu, Fedora, Arch
+  - X11 vs Wayland requirements
+  - Build tools and X11 libraries
+  - Browser extension setup
+  - Building AppImage and .deb packages
+  - Native messaging configuration
+  - Distribution compatibility matrix
+  - Troubleshooting Linux-specific issues
 
-## 🍎 macOS-Specific
+### macOS
 
 ### Permissions & Setup
 - **[macOS Permissions](MACOS_PERMISSIONS.md)** - Required permissions explained
@@ -147,10 +157,11 @@ Complete documentation for setup, configuration, deployment, and troubleshooting
 
 ### For Troubleshooting
 1. [Windows Setup](WINDOWS_SETUP.md) - Windows-specific issues
-2. [macOS Permissions](MACOS_PERMISSIONS.md) - macOS-specific issues
-3. [Enable Accessibility](ENABLE_ACCESSIBILITY.md) - Permission issues
-4. [Extension Memory Leak Fix](EXTENSION_MEMORY_LEAK_FIX.md) - Browser crashes
-5. [Server Startup Checklist](SERVER_STARTUP_CHECKLIST.md) - Server issues
+2. [Linux Setup](LINUX_SETUP.md) - Linux-specific issues
+3. [macOS Permissions](MACOS_PERMISSIONS.md) - macOS-specific issues
+4. [Enable Accessibility](ENABLE_ACCESSIBILITY.md) - Permission issues
+5. [Extension Memory Leak Fix](EXTENSION_MEMORY_LEAK_FIX.md) - Browser crashes
+6. [Server Startup Checklist](SERVER_STARTUP_CHECKLIST.md) - Server issues
 
 ---
 
@@ -159,6 +170,7 @@ Complete documentation for setup, configuration, deployment, and troubleshooting
 | Need to... | See document |
 |-----------|-------------|
 | Set up on Windows | [Windows Setup](WINDOWS_SETUP.md) |
+| Set up on Linux | [Linux Setup](LINUX_SETUP.md) |
 | Deploy server for first time | [Server Startup Checklist](SERVER_STARTUP_CHECKLIST.md) |
 | Configure client to use remote server | [Client-Server Setup](CLIENT_SERVER_SETUP.md) |
 | Enable AI categorization | [LLM Quick Start](LLM_QUICK_START.md) |

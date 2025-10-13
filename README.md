@@ -52,6 +52,7 @@ npm start
 
 - **Windows**: See [Windows Setup Guide](docs/WINDOWS_SETUP.md) for detailed instructions
 - **macOS**: See [macOS Permissions](docs/MACOS_PERMISSIONS.md) for required permissions
+- **Linux**: See [Linux Setup Guide](docs/LINUX_SETUP.md) for detailed instructions
 
 ## Quick Start
 
@@ -77,9 +78,11 @@ For building from source, see [BUILD.md](BUILD.md).
 - [Browser Activity Display](docs/BROWSER_ACTIVITY_DISPLAY.md) - Browser tracking features
 
 ### Platform-Specific
+- [Windows Setup](docs/WINDOWS_SETUP.md) - Complete Windows 10/11 setup guide
 - [macOS Permissions](docs/MACOS_PERMISSIONS.md) - Required macOS permissions
 - [Accessibility Enhancement](docs/ACCESSIBILITY_ENHANCEMENT.md) - Enhanced tracking on macOS
 - [Enable Accessibility](docs/ENABLE_ACCESSIBILITY.md) - Grant accessibility permissions
+- [Linux Setup](docs/LINUX_SETUP.md) - Complete Linux setup guide (Ubuntu, Fedora, Arch)
 
 ### Technical Details
 - [Backend Implementation Summary](docs/BACKEND_IMPLEMENTATION_SUMMARY.md) - Server architecture
