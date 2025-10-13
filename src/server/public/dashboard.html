@@ -445,6 +445,17 @@
 
     // Check authentication on load
     window.addEventListener('load', async () => {
+      // Check if token is in URL (from OAuth redirect)
+      const urlParams = new URLSearchParams(window.location.search);
+      const tokenFromUrl = urlParams.get('token');
+
+      if (tokenFromUrl) {
+        // Store token in localStorage
+        localStorage.setItem('auth_token', tokenFromUrl);
+        // Clean up URL by removing the token parameter
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
+
       const token = localStorage.getItem('auth_token');
       if (!token) {
         window.location.href = '/auth.html';

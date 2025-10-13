@@ -230,15 +230,15 @@ app.get('/auth/google/callback', async (req: Request, res: Response) => {
     // Generate JWT
     const token = oauthService.generateJWT(userId, googleUser.email);
 
-    // Set cookie
+    // Set cookie (for backend API calls)
     res.cookie('auth_token', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
     });
 
-    // Redirect to dashboard after successful auth
-    res.redirect('/dashboard');
+    // Redirect to dashboard with token (so client-side JS can store in localStorage)
+    res.redirect(`/dashboard?token=${encodeURIComponent(token)}`);
   } catch (error: any) {
     console.error('OAuth callback error:', error);
     res.redirect(`/auth.html?error=${encodeURIComponent(error.message)}`);
