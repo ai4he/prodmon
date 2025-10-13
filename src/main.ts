@@ -238,6 +238,7 @@ class ProductivityMonkeyApp {
       { type: 'separator' },
       { label: 'Browser Extension Setup', click: () => this.showBrowserExtensionSetup() },
       { label: 'Settings', click: () => this.showSettings() },
+      { label: 'Sign Out', click: () => this.signOut() },
       { label: 'Quit', click: () => app.quit() }
     ]);
 
@@ -455,6 +456,36 @@ class ProductivityMonkeyApp {
     if (this.agent) {
       this.agent.stop();
       this.agent = null;
+    }
+  }
+
+  private signOut() {
+    // Stop tracking
+    if (this.agent) {
+      this.agent.stop();
+      this.agent = null;
+    }
+
+    // Clear stored data
+    this.store.delete('authToken');
+    this.store.delete('config');
+
+    // Close main window
+    if (this.mainWindow) {
+      this.mainWindow.close();
+      this.mainWindow = null;
+    }
+
+    // Show auth window
+    if (this.oauthService) {
+      this.showAuthWindow();
+    } else {
+      dialog.showMessageBox({
+        type: 'info',
+        title: 'Signed Out',
+        message: 'You have been signed out. Please restart the application to sign in again.'
+      });
+      app.quit();
     }
   }
 
@@ -827,6 +858,14 @@ class ProductivityMonkeyApp {
     // Run diagnostics
     ipcMain.handle('run-diagnostics', async () => {
       return this.runDiagnostics();
+    });
+
+    // Get sync status (for debugging)
+    ipcMain.handle('get-sync-status', async () => {
+      if (this.storage && 'getSyncStatus' in this.storage) {
+        return (this.storage as any).getSyncStatus();
+      }
+      return { error: 'Sync status not available' };
     });
   }
 
