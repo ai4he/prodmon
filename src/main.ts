@@ -596,6 +596,25 @@ class ProductivityMonkeyApp {
                       if (userFromServer) {
                         userId = userFromServer.id;
                         console.log('✓ Found existing user on server:', userId);
+                      } else {
+                        // User doesn't exist on server - create them
+                        console.log('🔨 Creating new user on server...');
+                        const createResponse = await fetch(`${process.env.SERVER_URL}/api/users`, {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({
+                            name: googleUser.name,
+                            email: googleUser.email,
+                            title: 'User',
+                            team: 'Default Team',
+                            department: 'Default Department'
+                          })
+                        });
+                        if (createResponse.ok) {
+                          const createData = await createResponse.json() as any;
+                          userId = createData.userId;
+                          console.log('✓ Created user on server:', userId);
+                        }
                       }
                     }
                   } catch (error) {
@@ -763,6 +782,25 @@ class ProductivityMonkeyApp {
                       if (userFromServer) {
                         userId = userFromServer.id;
                         console.log('✓ Found existing user on server:', userId);
+                      } else {
+                        // User doesn't exist on server - create them
+                        console.log('🔨 Creating new user on server...');
+                        const createResponse = await fetch(`${process.env.SERVER_URL}/api/users`, {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({
+                            name: googleUser.name,
+                            email: googleUser.email,
+                            title: 'User',
+                            team: 'Default Team',
+                            department: 'Default Department'
+                          })
+                        });
+                        if (createResponse.ok) {
+                          const createData = await createResponse.json() as any;
+                          userId = createData.userId;
+                          console.log('✓ Created user on server:', userId);
+                        }
                       }
                     }
                   } catch (error) {

@@ -16,6 +16,9 @@ export class ActivityTracker {
   private llmCacheTime: number = 0;
   private llmCacheKey: string = '';
   private readonly LLM_CACHE_DURATION = 300000; // Cache LLM results for 5 minutes (reduced API calls)
+  private isCapturing: boolean = false; // Mutex to prevent concurrent captures
+  private captureErrorCount: number = 0;
+  private readonly MAX_CONSECUTIVE_ERRORS = 5;
 
   constructor(config: Config, llmService?: GeminiService) {
     this.config = config;
@@ -23,6 +26,24 @@ export class ActivityTracker {
   }
 
   async captureActivity(): Promise<ActivityRecord | null> {
+    // Prevent concurrent captures (mutex pattern)
+    if (this.isCapturing) {
+      console.log('⏭️  Skipping capture - previous capture still in progress');
+      return null;
+    }
+
+    // If too many consecutive errors, back off
+    if (this.captureErrorCount >= this.MAX_CONSECUTIVE_ERRORS) {
+      console.error(`⚠️  Too many consecutive capture errors (${this.captureErrorCount}), backing off...`);
+      // Wait a bit before trying again
+      setTimeout(() => {
+        this.captureErrorCount = 0;
+      }, 10000); // Reset after 10 seconds
+      return this.createIdleRecord();
+    }
+
+    this.isCapturing = true;
+
     try {
       // Dynamic import for cross-platform compatibility
       // get-windows (formerly active-win) is an ES module, but we compile to CommonJS
@@ -37,6 +58,7 @@ export class ActivityTracker {
       });
 
       if (!activeWin) {
+        this.captureErrorCount = 0; // Reset error count on success
         return this.createIdleRecord();
       }
 
@@ -94,10 +116,27 @@ export class ActivityTracker {
       this.mouseMovementsInInterval = 0;
       this.lastActivity = now;
 
+      // Success - reset error count
+      this.captureErrorCount = 0;
+
       return record;
-    } catch (error) {
-      console.error('Error capturing activity:', error);
+    } catch (error: any) {
+      this.captureErrorCount++;
+
+      // Only log EAGAIN errors occasionally to avoid spam
+      if (error.code === 'EAGAIN') {
+        if (this.captureErrorCount === 1 || this.captureErrorCount % 5 === 0) {
+          console.error(`⚠️  Resource temporarily unavailable (EAGAIN) - error ${this.captureErrorCount}/${this.MAX_CONSECUTIVE_ERRORS}`);
+          console.error('   This usually means the system is busy. Will retry...');
+        }
+      } else {
+        console.error('Error capturing activity:', error);
+      }
+
       return null;
+    } finally {
+      // Always release the mutex
+      this.isCapturing = false;
     }
   }
 
