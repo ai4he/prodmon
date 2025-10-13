@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Productivity Monkey - Browser Tracker",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Tracks browser activity for Productivity Monkey productivity monitoring",
   "permissions": [
     "tabs",
@@ -20,7 +20,14 @@
   },
   "content_scripts": [
     {
-      "matches": ["<all_urls>"],
+      "matches": [
+        "http://*/*",
+        "https://*/*"
+      ],
+      "exclude_matches": [
+        "*://127.0.0.1/*",
+        "*://localhost/*"
+      ],
       "js": ["content.js"],
       "run_at": "document_idle"
     }

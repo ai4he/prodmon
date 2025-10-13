@@ -6,6 +6,13 @@
 let activityTimeout = null;
 const ACTIVITY_DEBOUNCE = 1000; // Send activity signals max once per second
 
+// Track intervals for cleanup
+let mediaPlaybackInterval = null;
+let specializedActivityInterval = null;
+
+// Flag to track if we've been cleaned up
+let isCleanedUp = false;
+
 // Track keystrokes
 document.addEventListener('keydown', () => {
   sendActivitySignal({ keystroke: true });
@@ -32,12 +39,18 @@ document.addEventListener('mousemove', () => {
 }, { passive: true });
 
 function sendActivitySignal(activityType) {
+  // Don't send if cleaned up
+  if (isCleanedUp) return;
+
   // Debounce activity signals to avoid overwhelming the background script
   if (activityTimeout) {
     clearTimeout(activityTimeout);
   }
 
   activityTimeout = setTimeout(() => {
+    // Double check we haven't been cleaned up
+    if (isCleanedUp) return;
+
     try {
       chrome.runtime.sendMessage({
         type: 'activity',
@@ -46,11 +59,13 @@ function sendActivitySignal(activityType) {
         // Check if extension context is invalidated
         if (chrome.runtime.lastError) {
           console.log('Extension context invalidated, content script needs reload');
+          cleanup(); // Cleanup if extension context is invalid
         }
       });
     } catch (error) {
-      // Extension context invalidated - do nothing
+      // Extension context invalidated - cleanup
       console.log('Extension context invalidated');
+      cleanup();
     }
   }, 100);
 }
@@ -116,8 +131,14 @@ function detectMediaSource() {
   return 'Web Media';
 }
 
-// Check media playback every 10 seconds
-setInterval(detectMediaPlayback, 10000);
+// Check media playback every 10 seconds (only if not already set)
+if (!mediaPlaybackInterval) {
+  mediaPlaybackInterval = setInterval(() => {
+    if (!isCleanedUp) {
+      detectMediaPlayback();
+    }
+  }, 10000);
+}
 
 // Detect specific web app activities
 function detectSpecializedActivity() {
@@ -177,8 +198,14 @@ function detectSpecializedActivity() {
   }
 }
 
-// Check for specialized activities every 30 seconds
-setInterval(detectSpecializedActivity, 30000);
+// Check for specialized activities every 30 seconds (only if not already set)
+if (!specializedActivityInterval) {
+  specializedActivityInterval = setInterval(() => {
+    if (!isCleanedUp) {
+      detectSpecializedActivity();
+    }
+  }, 30000);
+}
 
 // Detect focus/blur events
 window.addEventListener('focus', () => {
@@ -195,6 +222,53 @@ document.addEventListener('visibilitychange', () => {
     sendActivitySignal({ tabVisible: true });
   } else {
     sendActivitySignal({ tabHidden: true });
+  }
+});
+
+// Cleanup function to prevent memory leaks
+function cleanup() {
+  if (isCleanedUp) return; // Already cleaned up
+
+  console.log('Productivity Monkey: Cleaning up content script');
+  isCleanedUp = true;
+
+  // Clear all intervals
+  if (mediaPlaybackInterval) {
+    clearInterval(mediaPlaybackInterval);
+    mediaPlaybackInterval = null;
+  }
+
+  if (specializedActivityInterval) {
+    clearInterval(specializedActivityInterval);
+    specializedActivityInterval = null;
+  }
+
+  // Clear any pending timeouts
+  if (activityTimeout) {
+    clearTimeout(activityTimeout);
+    activityTimeout = null;
+  }
+}
+
+// Cleanup when page is unloaded or hidden for extended period
+window.addEventListener('beforeunload', cleanup);
+window.addEventListener('pagehide', cleanup);
+
+// Cleanup when tab is hidden for more than 5 minutes (aggressive memory management)
+let hiddenTimer = null;
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden') {
+    // Start timer to cleanup after 5 minutes of being hidden
+    hiddenTimer = setTimeout(() => {
+      console.log('Productivity Monkey: Tab hidden for 5+ minutes, cleaning up');
+      cleanup();
+    }, 5 * 60 * 1000); // 5 minutes
+  } else {
+    // Tab became visible again, cancel cleanup timer
+    if (hiddenTimer) {
+      clearTimeout(hiddenTimer);
+      hiddenTimer = null;
+    }
   }
 });
 

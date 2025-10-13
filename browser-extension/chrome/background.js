@@ -44,6 +44,23 @@ async function initializeTracking() {
 
   // Check idle state periodically
   setInterval(checkIdleState, 10000);
+
+  // Periodic cleanup: Clear old stored activities every hour to prevent memory buildup
+  setInterval(async () => {
+    try {
+      const activities = await chrome.storage.local.get(['activities']);
+      const activityList = activities.activities || [];
+
+      // If we have more than 50 records, keep only the most recent 50
+      if (activityList.length > 50) {
+        const recentActivities = activityList.slice(-50);
+        await chrome.storage.local.set({ activities: recentActivities });
+        console.log(`Cleanup: Reduced stored activities from ${activityList.length} to 50`);
+      }
+    } catch (error) {
+      console.error('Error during periodic cleanup:', error);
+    }
+  }, 60 * 60 * 1000); // Run every hour
 }
 
 async function fetchUserIdFromNativeApp() {
@@ -261,14 +278,15 @@ async function sendToNativeApp(activityRecord) {
 }
 
 async function storeActivityLocally(activityRecord) {
-  // Store in IndexedDB for backup and offline sync
+  // Store in chrome.storage for backup and offline sync
+  // Reduced from 1000 to 100 to prevent memory issues
   const activities = await chrome.storage.local.get(['activities']);
   const activityList = activities.activities || [];
 
   activityList.push(activityRecord);
 
-  // Keep last 1000 records only
-  if (activityList.length > 1000) {
+  // Keep last 100 records only (reduced from 1000 to save memory)
+  if (activityList.length > 100) {
     activityList.shift();
   }
 
