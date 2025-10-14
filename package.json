@@ -85,10 +85,10 @@
     "mac": {
       "target": {
         "target": "dmg",
-        "arch": ["universal"]
+        "arch": ["x64", "arm64"]
       },
       "category": "public.app-category.productivity",
-      "artifactName": "Productivity-Monkey-${version}.${ext}"
+      "artifactName": "Productivity-Monkey-${version}-${arch}.${ext}"
     },
     "win": {
       "target": "nsis",
