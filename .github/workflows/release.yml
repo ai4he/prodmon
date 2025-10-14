@@ -1,0 +1,150 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (e.g., v1.0.0)'
+        required: true
+        default: 'v1.0.0'
+
+jobs:
+  build:
+    name: Build on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build TypeScript
+        run: npm run build:tsc
+
+      - name: Build Electron app (macOS)
+        if: matrix.os == 'macos-latest'
+        run: npm run build:client:mac
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: false
+
+      - name: Build Electron app (Windows)
+        if: matrix.os == 'windows-latest'
+        run: npm run build:client:win
+
+      - name: Build Electron app (Linux)
+        if: matrix.os == 'ubuntu-latest'
+        run: npm run build:client:linux
+
+      - name: List build artifacts
+        run: ls -R build/
+        shell: bash
+
+      - name: Upload macOS artifacts
+        if: matrix.os == 'macos-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-installer
+          path: |
+            build/*.dmg
+            build/*.dmg.blockmap
+
+      - name: Upload Windows artifacts
+        if: matrix.os == 'windows-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-installer
+          path: |
+            build/*.exe
+            build/*.exe.blockmap
+
+      - name: Upload Linux artifacts
+        if: matrix.os == 'ubuntu-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-installers
+          path: |
+            build/*.AppImage
+            build/*.deb
+
+  release:
+    name: Create Release
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: List artifacts
+        run: ls -R artifacts/
+
+      - name: Get version
+        id: get_version
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            echo "VERSION=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+          else
+            echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "${{ steps.get_version.outputs.VERSION }}" \
+            --title "Productivity Monkey ${{ steps.get_version.outputs.VERSION }}" \
+            --notes "# Productivity Monkey ${{ steps.get_version.outputs.VERSION }}
+
+          ## Features
+          - Desktop application tracking
+          - Browser extension support (Chrome, Edge, Firefox)
+          - Real-time productivity analytics
+          - Weekly reports and insights
+          - Privacy-first design
+
+          ## Installation
+          Download the appropriate installer for your platform:
+
+          ### macOS
+          - Download and open the DMG file
+          - Drag Productivity Monkey to your Applications folder
+
+          ### Windows
+          - Download and run the Setup.exe file
+          - Follow the installation wizard
+
+          ### Linux
+          - **AppImage**: Download, make executable (\`chmod +x\`), and run
+          - **Debian/Ubuntu**: Install with \`sudo dpkg -i productivity-monkey_*.deb\`
+
+          ### Browser Extensions
+          - Chrome/Edge: Load unpacked from \`browser-extension/chrome\`
+          - Firefox: Load temporary add-on from \`browser-extension/firefox\`
+
+          ## Notes
+          - First run will prompt you to configure your account
+          - Browser extension is required for comprehensive web tracking" \
+            artifacts/macos-installer/*.dmg \
+            artifacts/windows-installer/*.exe \
+            artifacts/linux-installers/*.AppImage \
+            artifacts/linux-installers/*.deb

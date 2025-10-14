@@ -80,18 +80,33 @@
       "src/server/public/**/*"
     ],
     "mac": {
-      "target": "dmg",
-      "category": "public.app-category.productivity"
+      "target": {
+        "target": "dmg",
+        "arch": ["universal"]
+      },
+      "category": "public.app-category.productivity",
+      "artifactName": "Productivity-Monkey-${version}.${ext}"
     },
     "win": {
-      "target": "nsis"
+      "target": "nsis",
+      "artifactName": "Productivity-Monkey-Setup-${version}.${ext}"
     },
     "linux": {
       "target": [
-        "AppImage",
-        "deb"
+        {
+          "target": "AppImage"
+        },
+        {
+          "target": "deb"
+        }
       ],
       "category": "Utility"
+    },
+    "deb": {
+      "artifactName": "productivity-monkey_${version}_${arch}.${ext}"
+    },
+    "appImage": {
+      "artifactName": "Productivity-Monkey-${version}.${ext}"
     }
   }
 }
