@@ -31,7 +31,10 @@
     "monitoring",
     "analytics"
   ],
-  "author": "",
+  "author": {
+    "name": "Productivity Monkey Team",
+    "email": "prodmon@example.com"
+  },
   "license": "MIT",
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
