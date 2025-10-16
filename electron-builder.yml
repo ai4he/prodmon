@@ -18,9 +18,19 @@ mac:
   artifactName: Productivity-Monkey-${version}-${arch}.${ext}
 win:
   target:
+    - target: nsis
+      arch:
+        - x64
     - target: portable
       arch:
         - x64
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  artifactName: Productivity-Monkey-Setup-${version}.${ext}
+portable:
   artifactName: Productivity-Monkey-Portable-${version}.${ext}
 linux:
   target:
