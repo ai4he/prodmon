@@ -69,51 +69,5 @@
     "nodemon": "^3.0.2",
     "sharp": "^0.34.4",
     "typescript": "^5.3.3"
-  },
-  "build": {
-    "appId": "com.prodmon.app",
-    "productName": "Productivity Monkey",
-    "directories": {
-      "output": "build"
-    },
-    "files": [
-      "dist/**/*",
-      "ui/**/*",
-      "node_modules/**/*",
-      "package.json",
-      "src/server/public/**/*"
-    ],
-    "mac": {
-      "target": {
-        "target": "dmg",
-        "arch": [
-          "x64",
-          "arm64"
-        ]
-      },
-      "category": "public.app-category.productivity",
-      "artifactName": "Productivity-Monkey-${version}-${arch}.${ext}"
-    },
-    "win": {
-      "target": "nsis",
-      "artifactName": "Productivity-Monkey-Setup-${version}.${ext}"
-    },
-    "linux": {
-      "target": [
-        {
-          "target": "AppImage"
-        },
-        {
-          "target": "deb"
-        }
-      ],
-      "category": "Utility"
-    },
-    "deb": {
-      "artifactName": "productivity-monkey_${version}_${arch}.${ext}"
-    },
-    "appImage": {
-      "artifactName": "Productivity-Monkey-${version}.${ext}"
-    }
   }
 }
