@@ -2,6 +2,7 @@ import { platform } from 'os';
 import { ActivityRecord, ActivityCategory, Config } from '../types';
 import { v4 as uuidv4 } from 'uuid';
 import { GeminiService } from '../llm/gemini-service';
+import * as windowsUrlCapture from '../native/windows-url-capture';
 
 export class ActivityTracker {
   private config: Config;
@@ -74,8 +75,26 @@ export class ActivityTracker {
       }
 
       // Use URL from active-win if available (via Accessibility permission on macOS)
+      // OR use Windows UI Automation for URL capture on Windows
       // This is much more accurate than parsing titles and works for all supported browsers
-      const url = ('url' in activeWin ? activeWin.url : undefined) || this.extractUrlFromTitle(activeWin.title);
+      let url = ('url' in activeWin ? activeWin.url : undefined);
+
+      // If no URL from active-win, try Windows UI Automation (Windows only)
+      if (!url && process.platform === 'win32') {
+        try {
+          const windowsUrl = windowsUrlCapture.getActiveWindowUrl();
+          if (windowsUrl && windowsUrl.length > 0) {
+            url = windowsUrl;
+          }
+        } catch (error) {
+          // Fallback to title parsing if Windows URL capture fails
+        }
+      }
+
+      // Final fallback: extract URL from title
+      if (!url) {
+        url = this.extractUrlFromTitle(activeWin.title);
+      }
       const mediaInfo = this.detectMedia(activeWin.title, activeWin.owner.name);
 
       // Try LLM categorization first, fallback to rule-based

@@ -6,9 +6,11 @@
   "scripts": {
     "start": "electron .",
     "dev": "concurrently \"tsc -w\" \"electron .\"",
-    "build": "tsc && electron-builder",
+    "build": "npm run build:native:optional && tsc && electron-builder",
     "build:tsc": "tsc",
-    "build:client": "tsc && electron-builder",
+    "build:native": "node-gyp rebuild",
+    "build:native:optional": "node-gyp rebuild || echo \"Native module build failed - Windows URL capture will not be available\"",
+    "build:client": "npm run build:native:optional && tsc && electron-builder",
     "build:client:mac": "tsc && electron-builder --mac",
     "build:client:win": "tsc && electron-builder --win",
     "build:client:linux": "tsc && electron-builder --linux",
@@ -47,6 +49,8 @@
     "get-windows": "^9.2.3",
     "google-auth-library": "^10.4.0",
     "jsonwebtoken": "^9.0.2",
+    "node-addon-api": "^8.0.0",
+    "node-gyp": "^10.0.1",
     "sql.js": "^1.10.3",
     "uuid": "^9.0.1"
   },

@@ -48,7 +48,20 @@ git clone https://github.com/ai4he/prodmon.git
 cd prodmon
 ```
 
-### 2. Install Dependencies
+### 2. Install Build Tools (Required for URL Capture)
+
+To enable native browser URL capture, install Visual Studio Build Tools:
+
+```powershell
+# Option 1: Install via npm (recommended)
+npm install --global windows-build-tools
+
+# Option 2: Manual installation
+# Download from: https://visualstudio.microsoft.com/downloads/
+# Select "Desktop development with C++"
+```
+
+### 3. Install Dependencies
 
 ```powershell
 npm install
@@ -56,15 +69,21 @@ npm install
 
 **Note:** This may take 5-10 minutes on first run as it compiles native modules.
 
-If you encounter errors, ensure Visual Studio Build Tools are installed.
+If you encounter errors, ensure Visual Studio Build Tools are installed (see step 2).
 
-### 3. Build Application
+### 4. Build Application
 
 ```powershell
+# Build native module for URL capture (Windows only)
+npm run build:native
+
+# Build TypeScript
 npm run build
 ```
 
-This compiles TypeScript to JavaScript in the `dist/` folder.
+This:
+1. Compiles the Windows UI Automation native module for URL capture
+2. Compiles TypeScript to JavaScript in the `dist/` folder
 
 ---
 
@@ -498,6 +517,34 @@ For Windows-specific issues:
 - Review [main documentation](../README.md)
 - Check [GitHub Issues](https://github.com/ai4he/prodmon/issues)
 - Tag issues with `platform:windows`
+
+---
+
+## Windows-Specific Features
+
+### 🆕 Native Browser URL Capture
+
+**New in v1.1.0:** Windows now has **native URL capture** using Windows UI Automation!
+
+This provides the same functionality as macOS Accessibility permission:
+- ✅ **Direct browser URL capture** (Chrome, Edge, Brave, Opera, Vivaldi)
+- ✅ **No permissions required** (unlike macOS)
+- ✅ **Accurate URL-based categorization**
+- ✅ **Dual-layer tracking** (Desktop + Browser Extension)
+
+**Setup:**
+```powershell
+# Install build tools (one-time)
+npm install --global windows-build-tools
+
+# Build native module
+npm run build:native
+
+# Run application
+npm start
+```
+
+See [WINDOWS_URL_CAPTURE.md](WINDOWS_URL_CAPTURE.md) for complete details.
 
 ---
 
