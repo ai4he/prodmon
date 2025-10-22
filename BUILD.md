@@ -1,223 +1,191 @@
-# Build Instructions for Productivity Monkey
+# Building Productivity Monkey Installers
 
-This document provides platform-specific build instructions for the Productivity Monkey application, which consists of both **client-side** (Electron desktop app) and **server-side** (Node.js API server) components.
-
-## Architecture Overview
-
-- **Client Components**: Desktop app (Electron), Browser Extensions, Native Messaging Host
-- **Server Components**: REST API server, Database, Analytics Engine
-- **Shared Components**: TypeScript source code in `src/`
+This document describes how to build platform-specific installers for Productivity Monkey.
 
 ## Prerequisites
 
-### All Platforms
-- Node.js 18.18+
-- npm 9+
-- Git
+Before building, ensure you have:
 
-### Platform-Specific Requirements
+1. Node.js 20+ installed
+2. npm installed
+3. All dependencies installed: `npm install`
 
-#### macOS (Client Build)
-- Xcode Command Line Tools
-- For active-win native module: Swift toolchain (included with Xcode)
+## Supported Platforms
 
-#### Windows (Client Build)
-- Visual Studio Build Tools 2019 or later
-- Python 3.x (for node-gyp)
-- Windows SDK
+Productivity Monkey supports building installers for:
 
-#### Linux/Ubuntu (Server Build)
-- build-essential package
-- No Electron packaging required for server-only builds
-
-## Installation
-
-```bash
-# Clone the repository
-git clone <repository-url>
-cd prodmon
-
-# Install dependencies
-npm install
-```
+- **macOS**: DMG installer (x64 and ARM64/Apple Silicon)
+- **Windows**: NSIS installer and Portable executable (x64)
+- **Linux**: AppImage, DEB, and RPM packages (x64)
 
 ## Build Commands
 
-### TypeScript Compilation Only
-```bash
-npm run build:tsc
-```
-Compiles TypeScript to JavaScript in the `dist/` folder. Use this for server deployments that don't need Electron packaging.
+### Build All Platforms
 
-### Server Build (Ubuntu/Linux)
-```bash
-npm run build:server
-```
-Compiles TypeScript only - perfect for deploying the server component on Ubuntu/Linux without the overhead of Electron packaging.
-
-**Use case**: Deploy to Ubuntu server for centralized data collection and analytics API.
-
-### Client Build (All Platforms)
-```bash
-npm run build:client
-```
-Compiles TypeScript AND packages the Electron app for the current platform.
-
-#### Platform-Specific Client Builds
-```bash
-# Build for macOS (run on Mac)
-npm run build:client:mac
-
-# Build for Windows (run on Windows)
-npm run build:client:win
-
-# Build for Linux (run on Linux)
-npm run build:client:linux
-```
-
-### Full Build (TypeScript + Electron)
 ```bash
 npm run build
 ```
-Same as `build:client` - compiles and packages for current platform.
 
-## Cross-Platform Build Strategy
+This will:
+1. Build native modules (optional - Windows URL capture)
+2. Generate app icons from browser extension icons
+3. Compile TypeScript
+4. Create installers for the current platform
 
-### Recommended Workflow
+### Build Platform-Specific Installers
 
-1. **Ubuntu Server (Server Component)**
-   ```bash
-   git clone <repo>
-   npm install
-   npm run build:server
-   npm run server
-   ```
-   - Compiles TypeScript quickly without Electron overhead
-   - Server runs on port 3000 (configurable via `PORT` env var)
-   - Database stored at `./prodmon-server.db` (configurable via `DB_PATH`)
+#### macOS (DMG)
 
-2. **macOS (Client Component)**
-   ```bash
-   git clone <repo>
-   npm install
-   npm run build:client:mac
-   # Creates build/Productivity Monkey-1.0.0.dmg
-   ```
-   - Requires macOS to build .dmg installer
-   - Includes active-win with full Screen Recording + Accessibility permission support
-   - Browser extensions can connect via native messaging
-
-3. **Windows (Client Component)**
-   ```bash
-   git clone <repo>
-   npm install
-   npm run build:client:win
-   # Creates build/Productivity Monkey Setup 1.0.0.exe
-   ```
-   - Requires Windows to build .exe installer
-   - Includes active-win native module for Windows
-
-## Active-Win Compatibility Notes
-
-The `active-win` package (v9.0.0) is used for tracking active windows and has platform-specific behavior:
-
-- **Import**: Use named import `{ activeWindow }` instead of default import
-- **macOS**: Full support with URL capture via Accessibility permissions
-- **Windows**: Full support with window title and app tracking
-- **Linux**: Full support with window title and app tracking
-
-**Breaking change fixed**: The code now uses `import { activeWindow } from 'active-win'` (correct) instead of `import activeWin from 'active-win'` (incorrect for v9.0.0).
-
-## Development Workflows
-
-### Server Development (Ubuntu)
 ```bash
-npm run server:dev
-# Auto-recompiles TypeScript and restarts server on changes
+npm run build:client:mac
 ```
 
-### Client Development (Mac/Windows)
+**Output files** (in `build/` directory):
+- `Productivity-Monkey-1.0.0-x64.dmg` - Intel Macs
+- `Productivity-Monkey-1.0.0-arm64.dmg` - Apple Silicon Macs
+
+**Note**: Building macOS installers on non-macOS platforms requires additional configuration.
+
+#### Windows (NSIS + Portable)
+
 ```bash
-npm run dev
-# Auto-recompiles TypeScript and reloads Electron on changes
+npm run build:client:win
 ```
 
-### Running Components
+**Output files** (in `build/` directory):
+- `Productivity-Monkey-Setup-1.0.0.exe` - NSIS installer (recommended)
+- `Productivity-Monkey-Portable-1.0.0.exe` - Portable version (no installation required)
 
-#### Start Server
+**Note**: Building Windows installers on non-Windows platforms requires Wine.
+
+#### Linux (AppImage, DEB, RPM)
+
 ```bash
-npm run server
-# Or with environment variables:
-PORT=8080 DB_PATH=/data/prodmon.db GEMINI_API_KEY=xxx npm run server
+npm run build:client:linux
 ```
 
-#### Start Client
-```bash
-npm start
-# Runs the Electron app
+**Output files** (in `build/` directory):
+- `Productivity-Monkey-1.0.0.AppImage` - Universal Linux package (runs on most distros)
+- `productivity-monkey_1.0.0_amd64.deb` - Debian/Ubuntu package
+- `productivity-monkey-1.0.0.x86_64.rpm` - RedHat/Fedora/CentOS package
+
+## Build Configuration
+
+The build configuration is defined in `electron-builder.yml`:
+
+### macOS Configuration
+- **Target**: DMG
+- **Architectures**: x64, arm64 (universal support)
+- **Category**: Productivity
+
+### Windows Configuration
+- **Targets**: NSIS installer + Portable executable
+- **Architecture**: x64
+- **Features**:
+  - Installation directory selection
+  - Desktop shortcut creation
+  - Start menu shortcuts
+  - Non-one-click installer (user can customize)
+
+### Linux Configuration
+- **Targets**: AppImage, DEB, RPM
+- **Architecture**: x64
+- **Category**: Utility
+- **Dependencies**: Automatically includes required system libraries
+
+## Icon Generation
+
+The build process automatically generates platform-specific icons from the browser extension icons:
+
+- **Source**: `browser-extension/chrome/icons/icon128.png`
+- **Output**: `build-resources/icon.png` (and variants)
+- **Script**: `scripts/generate-icons.js`
+
+The script will:
+1. Check if `sharp` is available for high-resolution icon generation (512x512, 1024x1024)
+2. Fall back to copying the base 128x128 icon if `sharp` is not installed
+3. electron-builder automatically generates `.icns` (macOS) and `.ico` (Windows) from the PNG
+
+## Build Output
+
+All build artifacts are placed in the `build/` directory:
+
+```
+build/
+├── Productivity-Monkey-1.0.0-x64.dmg           # macOS Intel
+├── Productivity-Monkey-1.0.0-arm64.dmg         # macOS Apple Silicon
+├── Productivity-Monkey-Setup-1.0.0.exe         # Windows NSIS installer
+├── Productivity-Monkey-Portable-1.0.0.exe      # Windows portable
+├── Productivity-Monkey-1.0.0.AppImage          # Linux AppImage
+├── productivity-monkey_1.0.0_amd64.deb         # Debian/Ubuntu
+└── productivity-monkey-1.0.0.x86_64.rpm        # RedHat/Fedora/CentOS
 ```
 
-## Build Output Locations
+## Platform-Specific Build Notes
 
-- **TypeScript Output**: `dist/` folder
-- **Electron Builds**: `build/` folder
-  - macOS: `build/Productivity Monkey-1.0.0.dmg`
-  - Windows: `build/Productivity Monkey Setup 1.0.0.exe`
-  - Linux: `build/Productivity Monkey-1.0.0.AppImage`, `build/prodmon_1.0.0_amd64.snap`
+### macOS
+- Code signing requires an Apple Developer certificate
+- Notarization requires Apple ID credentials
+- For unsigned builds (development), users will need to right-click > Open
 
-## Common Issues
+### Windows
+- Code signing requires a Windows code signing certificate
+- Unsigned builds will show Windows SmartScreen warnings
+- NSIS installer provides better integration than portable version
 
-### Issue: TypeScript compilation fails with active-win error
-**Solution**: Ensure you're using the named import:
-```typescript
-import { activeWindow } from 'active-win';
-// NOT: import activeWin from 'active-win';
+### Linux
+- **AppImage** is recommended for universal compatibility
+- **DEB** packages work on Debian, Ubuntu, Linux Mint, Pop!_OS, etc.
+- **RPM** packages work on RedHat, Fedora, CentOS, openSUSE, etc.
+
+## Continuous Integration / GitHub Actions
+
+For automated builds via GitHub Actions, see `.github/workflows/` directory.
+
+The CI workflow can build for all platforms and create GitHub releases automatically.
+
+## Troubleshooting
+
+### Icon Generation Issues
+
+If icon generation fails:
+1. Ensure dependencies are installed: `npm install`
+2. The script will fall back to using the 128x128 icon
+3. For production, ensure `sharp` is properly installed for high-res icons
+
+### Build Fails on Cross-Platform
+
+electron-builder can build for different platforms, but some limitations apply:
+- macOS builds from Windows/Linux require additional tools
+- Windows builds from macOS/Linux require Wine
+- Linux builds work from any platform
+
+### Native Module Build Failures
+
+The Windows native URL capture module is optional:
+- Build will continue even if native module compilation fails
+- The app will fall back to basic window tracking
+- For full functionality, build on Windows with Visual Studio Build Tools
+
+## Distribution
+
+After building:
+
+1. **macOS**: Distribute the DMG file. Users drag the app to Applications folder.
+2. **Windows**: Distribute the NSIS installer for standard installation, or portable version for USB/no-install scenarios.
+3. **Linux**:
+   - AppImage: Most universal, works without installation
+   - DEB: For Debian-based distributions
+   - RPM: For RedHat-based distributions
+
+## Version Management
+
+Update the version in `package.json` before building:
+
+```json
+{
+  "version": "1.0.0"
+}
 ```
 
-### Issue: Electron-builder times out on Ubuntu
-**Solution**: Use `npm run build:server` instead of `npm run build` for server-only deployments. Electron-builder is not needed for the server component.
-
-### Issue: Native module compilation fails
-**Solution**:
-- macOS: Install Xcode Command Line Tools: `xcode-select --install`
-- Windows: Install Visual Studio Build Tools
-- Linux: Install build-essential: `sudo apt-get install build-essential`
-
-## Environment Variables
-
-### Server Configuration
-- `PORT`: Server port (default: 3000)
-- `DB_PATH`: SQLite database path (default: ./prodmon-server.db)
-- `GEMINI_API_KEY`: Google Gemini API key for LLM features (optional)
-
-### Client Configuration
-- Configured via UI settings (stored in electron-store)
-
-## CI/CD Recommendations
-
-### GitHub Actions Example
-
-```yaml
-# Server build (Ubuntu)
-- name: Build Server
-  run: npm run build:server
-
-# Client builds (platform-specific)
-- name: Build macOS Client
-  if: matrix.os == 'macos-latest'
-  run: npm run build:client:mac
-
-- name: Build Windows Client
-  if: matrix.os == 'windows-latest'
-  run: npm run build:client:win
-```
-
-## Next Steps After Build
-
-1. **Ubuntu Server**: Deploy `dist/` folder + run `npm run server`
-2. **Client Machines**: Install packaged .dmg/.exe and configure server URL
-3. **Browser Extensions**: Load unpacked extension from `browser-extension/chrome` or `browser-extension/firefox`
-
-## Questions?
-
-Refer to CLAUDE.md for project architecture details.
+The version number is automatically included in all installer filenames.
