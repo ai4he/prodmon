@@ -78,6 +78,7 @@ jobs:
           path: |
             build/*.AppImage
             build/*.deb
+            build/*.rpm
 
   release:
     name: Create Release
@@ -136,6 +137,7 @@ jobs:
           ### Linux
           - **AppImage**: Download, make executable (\`chmod +x\`), and run
           - **Debian/Ubuntu**: Install with \`sudo dpkg -i productivity-monkey_*.deb\`
+          - **RedHat/Fedora/CentOS**: Install with \`sudo rpm -i productivity-monkey-*.rpm\`
 
           ### Browser Extensions
           - Chrome/Edge: Load unpacked from \`browser-extension/chrome\`
@@ -147,4 +149,5 @@ jobs:
             artifacts/macos-installer/*.dmg \
             artifacts/windows-installer/*.exe \
             artifacts/linux-installers/*.AppImage \
-            artifacts/linux-installers/*.deb
+            artifacts/linux-installers/*.deb \
+            artifacts/linux-installers/*.rpm
