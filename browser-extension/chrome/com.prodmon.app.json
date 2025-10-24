@@ -1,9 +1,10 @@
 {
   "name": "com.prodmon.app",
   "description": "Productivity Monkey Native Messaging Host",
-  "path": "/Applications/Productivity Monkey.app/Contents/Resources/app/dist/native-host.js",
+  "path": "/Applications/Productivity Monkey.app/Contents/Resources/app/native-host-runner.js",
   "type": "stdio",
   "allowed_origins": [
     "chrome-extension://EXTENSION_ID_PLACEHOLDER/"
-  ]
+  ],
+  "_comment": "TEMPLATE ONLY - This manifest is dynamically generated and installed by the Electron app at runtime. Paths vary by platform: macOS uses /Applications/, Windows uses %LocalAppData%\\Productivity Monkey\\, Linux uses ~/.local/bin/"
 }
