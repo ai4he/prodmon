@@ -8,6 +8,46 @@ import { join } from 'path';
 import { homedir } from 'os';
 import { app } from 'electron';
 
+/**
+ * Helper function to find the Node.js executable path
+ * Handles both packaged and development environments
+ */
+function findNodeExecutable(): string {
+  const platform = process.platform;
+  const { execSync } = require('child_process');
+
+  // For packaged apps, try to find system Node.js
+  if (app.isPackaged) {
+    try {
+      if (platform === 'win32') {
+        return execSync('where node').toString().trim().split('\n')[0];
+      } else {
+        return execSync('which node').toString().trim();
+      }
+    } catch (error) {
+      // If system Node.js not found, fall back to process.execPath (Electron)
+      console.warn('System Node.js not found in packaged app, using Electron executable as fallback');
+      return process.execPath;
+    }
+  } else {
+    // Development mode: use current Node.js
+    try {
+      if (platform === 'win32') {
+        return execSync('where node').toString().trim().split('\n')[0];
+      } else {
+        return execSync('which node').toString().trim();
+      }
+    } catch (error) {
+      // Fallback to defaults
+      if (platform === 'win32') {
+        return 'node'; // Will use PATH
+      } else {
+        return '/usr/local/bin/node';
+      }
+    }
+  }
+}
+
 export function installNativeMessagingHost(extensionId: string) {
   const platform = process.platform;
   const hostName = 'com.prodmon.app';
@@ -19,23 +59,7 @@ export function installNativeMessagingHost(extensionId: string) {
     : join(app.getAppPath(), 'native-host-runner.js');
 
   // Find node executable
-  let nodePath: string;
-  try {
-    if (platform === 'win32') {
-      // Windows: use 'where' command
-      nodePath = execSync('where node').toString().trim().split('\n')[0];
-    } else {
-      // Unix/macOS: use 'which' command
-      nodePath = execSync('which node').toString().trim();
-    }
-  } catch (error) {
-    // Fallback to defaults
-    if (platform === 'win32') {
-      nodePath = 'node'; // Will use PATH
-    } else {
-      nodePath = '/usr/local/bin/node';
-    }
-  }
+  const nodePath = findNodeExecutable();
 
   // Create wrapper executable script
   let wrapperPath: string;
@@ -114,23 +138,7 @@ export function installNativeMessagingHostForEdge(extensionId: string) {
     : join(app.getAppPath(), 'native-host-runner.js');
 
   // Find node executable
-  let nodePath: string;
-  try {
-    if (platform === 'win32') {
-      // Windows: use 'where' command
-      nodePath = execSync('where node').toString().trim().split('\n')[0];
-    } else {
-      // Unix/macOS: use 'which' command
-      nodePath = execSync('which node').toString().trim();
-    }
-  } catch (error) {
-    // Fallback to defaults
-    if (platform === 'win32') {
-      nodePath = 'node'; // Will use PATH
-    } else {
-      nodePath = '/usr/local/bin/node';
-    }
-  }
+  const nodePath = findNodeExecutable();
 
   // Use same wrapper as Chrome
   let wrapperPath: string;
