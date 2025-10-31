@@ -16,6 +16,16 @@ mac:
       - arm64
   category: public.app-category.productivity
   artifactName: Productivity-Monkey-${version}-${arch}.${ext}
+  # Code signing
+  hardenedRuntime: true
+  gatekeeperAssess: false
+  entitlements: build-resources/entitlements.mac.plist
+  entitlementsInherit: build-resources/entitlements.mac.plist
+  # The identity will be auto-discovered from Keychain
+  # notarize:
+  #   teamId: ${APPLE_TEAM_ID}
+dmg:
+  sign: true
 win:
   target:
     - target: nsis
