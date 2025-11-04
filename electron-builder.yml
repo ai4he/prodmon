@@ -20,6 +20,16 @@ mac:
       - arm64
   category: public.app-category.productivity
   artifactName: Productivity-Monkey-${version}-${arch}.${ext}
+  # Code signing
+  hardenedRuntime: true
+  gatekeeperAssess: false
+  entitlements: build-resources/entitlements.mac.plist
+  entitlementsInherit: build-resources/entitlements.mac.plist
+  # The identity will be auto-discovered from Keychain
+  # notarize:
+  #   teamId: ${APPLE_TEAM_ID}
+dmg:
+  sign: true
 win:
   target:
     - target: nsis
@@ -39,9 +49,40 @@ portable:
 linux:
   target:
     - target: AppImage
+      arch:
+        - x64
     - target: deb
+      arch:
+        - x64
+    - target: rpm
+      arch:
+        - x64
   category: Utility
+  maintainer: Productivity Monkey Team <prodmon@example.com>
+  vendor: Productivity Monkey
+  synopsis: Team productivity monitoring and analytics
+  description: Comprehensive team productivity monitoring tool with desktop tracking, browser extension, and analytics dashboard
 deb:
   artifactName: productivity-monkey_${version}_${arch}.${ext}
+  depends:
+    - libgtk-3-0
+    - libnotify4
+    - libnss3
+    - libxss1
+    - libxtst6
+    - xdg-utils
+    - libatspi2.0-0
+    - libuuid1
+rpm:
+  artifactName: productivity-monkey-${version}.${arch}.${ext}
+  depends:
+    - gtk3
+    - libnotify
+    - nss
+    - libXScrnSaver
+    - libXtst
+    - xdg-utils
+    - at-spi2-core
+    - libuuid
 appImage:
   artifactName: Productivity-Monkey-${version}.${ext}
