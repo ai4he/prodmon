@@ -343,10 +343,35 @@ Before releasing:
 
 ---
 
+## Known Issues
+
+### Deprecated Dependency
+
+**Note**: The project currently uses `electron-notarize@1.2.2` which is deprecated. This package works but is no longer maintained.
+
+**Current**: `electron-notarize@1.2.2` (deprecated)
+**Recommended**: `@electron/notarize` (official replacement)
+
+**Impact**: The current implementation works but may not be compatible with future versions of Electron or macOS.
+
+**Migration Path**: When upgrading, replace:
+```javascript
+// Old (current)
+const { notarize } = require('electron-notarize');
+
+// New (recommended)
+const { notarize } = require('@electron/notarize');
+```
+
+The API is similar but `@electron/notarize` has better support for modern notarization methods.
+
+---
+
 ## References
 
 - [Apple Developer Program](https://developer.apple.com/programs/)
 - [Code Signing Guide](https://developer.apple.com/library/archive/documentation/Security/Conceptual/CodeSigningGuide/)
 - [Notarizing macOS Software](https://developer.apple.com/documentation/security/notarizing_macos_software_before_distribution)
 - [electron-builder Code Signing](https://www.electron.build/code-signing)
-- [electron-notarize](https://github.com/electron/electron-notarize)
+- [electron-notarize](https://github.com/electron/electron-notarize) (deprecated)
+- [@electron/notarize](https://github.com/electron/notarize) (recommended)

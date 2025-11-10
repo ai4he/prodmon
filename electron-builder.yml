@@ -8,6 +8,10 @@ files:
   - node_modules/**/*
   - package.json
   - src/server/public/**/*
+  - native-host-runner.js
+extraResources:
+  - from: native-host-runner.js
+    to: app/native-host-runner.js
 mac:
   target:
     target: dmg
